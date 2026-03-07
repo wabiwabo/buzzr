@@ -9,6 +9,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
 import { UserModule } from './modules/user/user.module';
 import { AreaModule } from './modules/area/area.module';
 import { TpsModule } from './modules/tps/tps.module';
+import { FleetModule } from './modules/fleet/fleet.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { TpsModule } from './modules/tps/tps.module';
     UserModule,
     AreaModule,
     TpsModule,
+    FleetModule,
   ],
 })
 export class AppModule implements NestModule {
