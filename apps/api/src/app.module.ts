@@ -4,6 +4,7 @@ import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { DatabaseModule } from './database/database.module';
 import { TenantMiddleware } from './database/tenant.middleware';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { TenantMiddleware } from './database/tenant.middleware';
       envFilePath: '../../.env',
     }),
     DatabaseModule,
+    AuthModule,
   ],
 })
 export class AppModule implements NestModule {
