@@ -13,6 +13,7 @@ import { TpsModule } from './modules/tps/tps.module';
 import { FleetModule } from './modules/fleet/fleet.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
+import { TransferModule } from './modules/transfer/transfer.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TrackingModule } from './modules/tracking/tracking.module';
     FleetModule,
     ScheduleModule,
     TrackingModule,
+    TransferModule,
   ],
 })
 export class AppModule implements NestModule {
