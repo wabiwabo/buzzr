@@ -31,10 +31,16 @@ export class TenantMiddleware implements NestMiddleware {
       throw new BadRequestException(`Tenant "${tenantSlug}" not found`);
     }
 
-    req.tenantId = result[0].id;
-    req.tenantSchema = result[0].schema_name;
+    const schemaName = result[0].schema_name;
 
-    await this.dataSource.query(`SET search_path TO '${result[0].schema_name}', public`);
+    if (!/^[a-z_][a-z0-9_]*$/.test(schemaName)) {
+      throw new BadRequestException('Invalid tenant schema name');
+    }
+
+    req.tenantId = result[0].id;
+    req.tenantSchema = schemaName;
+
+    await this.dataSource.query(`SET search_path TO '${schemaName}', public`);
 
     next();
   }
