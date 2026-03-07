@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
+import { OtpService } from './otp.service';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
@@ -23,6 +24,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: DataSource, useValue: dataSource },
         { provide: JwtService, useValue: jwtService },
+        { provide: OtpService, useValue: { generateOtp: jest.fn(), verifyOtp: jest.fn() } },
         {
           provide: ConfigService,
           useValue: {
