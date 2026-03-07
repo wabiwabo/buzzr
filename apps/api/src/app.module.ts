@@ -14,6 +14,7 @@ import { FleetModule } from './modules/fleet/fleet.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
 import { TransferModule } from './modules/transfer/transfer.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -33,13 +34,14 @@ import { TransferModule } from './modules/transfer/transfer.module';
     ScheduleModule,
     TrackingModule,
     TransferModule,
+    PaymentModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(TenantMiddleware)
-      .exclude('health', 'api/v1/auth/super-admin/(.*)', 'api/v1/tenants', 'api/v1/tenants/(.*)')
+      .exclude('health', 'api/v1/auth/super-admin/(.*)', 'api/v1/tenants', 'api/v1/tenants/(.*)', 'api/v1/payments/webhook')
       .forRoutes('*');
   }
 }
