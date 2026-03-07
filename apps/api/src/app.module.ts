@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
 import { databaseConfig } from './config/database.config';
 import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './common/redis.module';
 import { TenantMiddleware } from './database/tenant.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantModule } from './modules/tenant/tenant.module';
@@ -11,6 +12,7 @@ import { AreaModule } from './modules/area/area.module';
 import { TpsModule } from './modules/tps/tps.module';
 import { FleetModule } from './modules/fleet/fleet.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module';
       envFilePath: '../../.env',
     }),
     DatabaseModule,
+    RedisModule,
     AuthModule,
     TenantModule,
     UserModule,
@@ -27,6 +30,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module';
     TpsModule,
     FleetModule,
     ScheduleModule,
+    TrackingModule,
   ],
 })
 export class AppModule implements NestModule {
