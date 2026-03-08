@@ -1,6 +1,9 @@
 export { PageHeader } from './PageHeader';
+export { InfoTooltip } from './InfoTooltip';
 export { StatCard } from './StatCard';
 export { StatusBadge } from './StatusBadge';
 export { EmptyState } from './EmptyState';
-export { InfoTooltip } from './InfoTooltip';
 export { ConfirmAction } from './ConfirmAction';
+export { SlideOver } from './SlideOver';
+export { Sparkline } from './Sparkline';
+export { ProgressRing } from './ProgressRing';
