@@ -15,12 +15,14 @@ interface AppSidebarProps {
   collapsed: boolean;
   onCollapse: (collapsed: boolean) => void;
   isSuperAdmin?: boolean;
+  onRestartTour?: () => void;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   collapsed,
   onCollapse,
   isSuperAdmin = false,
+  onRestartTour,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,9 +71,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     },
     { type: 'divider' as const },
     {
-      key: '/help',
+      key: 'help',
       icon: <QuestionCircleOutlined />,
       label: 'Bantuan',
+      children: [
+        { key: 'tour', label: 'Mulai Tour' },
+      ],
     },
   ];
 
@@ -116,7 +121,11 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         selectedKeys={[location.pathname]}
         items={menuItems as any}
         onClick={({ key }) => {
-          if (key === '/help') return;
+          if (key === 'tour') {
+            onRestartTour?.();
+            return;
+          }
+          if (key === 'help') return;
           navigate(key);
         }}
       />
