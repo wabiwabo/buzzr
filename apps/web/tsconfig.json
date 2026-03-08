@@ -12,9 +12,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "baseUrl": ".",
     "paths": {
       "@buzzr/shared-types": ["../../packages/shared-types/src"],
-      "@buzzr/constants": ["../../packages/constants/src"]
+      "@buzzr/constants": ["../../packages/constants/src"],
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"]
