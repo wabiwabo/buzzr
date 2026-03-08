@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-blur: blur(12px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Enterprise card with subtle glass effect */
+.glass-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border) !important;
+  transition: box-shadow var(--transition-normal), transform var(--transition-fast);
+}
+.glass-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Smooth transitions on interactive elements */
+.ant-btn, .ant-tag, .ant-badge, .ant-card, .ant-table-row {
+  transition: all var(--transition-fast) !important;
+}
+
+/* Skeleton shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-row {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  height: 20px;
+  border-radius: 4px;
+}
+
+/* Clickable stat card */
+.stat-card-clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-normal);
+}
+.stat-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Status dot animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.status-dot-active {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Smart table toolbar */
+.smart-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  flex-wrap: wrap;
+}
+
+/* Detail drawer */
+.detail-drawer .ant-drawer-body {
+  padding: 0;
+}
+.detail-drawer-section {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Page header */
+.page-header {
+  margin-bottom: var(--spacing-lg);
+}
+.page-header-description {
+  color: rgba(0, 0, 0, 0.45);
+  margin-top: var(--spacing-xs);
+  font-size: 14px;
+}
+
+/* Filter chip tags */
+.filter-chip {
+  margin: 2px;
+  border-radius: 16px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}

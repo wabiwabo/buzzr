@@ -9,17 +9,24 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@buzzr/shared-types": "workspace:*",
+    "@ant-design/icons": "^5.6.0",
     "@buzzr/constants": "workspace:*",
+    "@buzzr/shared-types": "workspace:*",
+    "@types/file-saver": "^2.0.7",
+    "@types/leaflet": "^1.9.21",
+    "antd": "^5.23.0",
+    "axios": "^1.7.0",
+    "dayjs": "^1.11.0",
+    "file-saver": "^2.0.5",
+    "leaflet": "^1.9.4",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.28.0",
-    "antd": "^5.23.0",
-    "@ant-design/icons": "^5.6.0",
-    "axios": "^1.7.0",
-    "zustand": "^5.0.0",
-    "dayjs": "^1.11.0",
-    "recharts": "^2.15.0"
+    "recharts": "^2.15.0",
+    "socket.io-client": "^4.8.3",
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
