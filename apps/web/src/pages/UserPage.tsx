@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Eye, MoreHorizontal } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import { createColumnHelper } from '@tanstack/react-table';
 import api from '../services/api';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PageHeader, StatusBadge, SlideOver, VisualSelector, PageTransition } from '../components/common';
-import { SmartTable, DetailDrawer } from '../components/data';
-import { useTableState } from '../hooks/useTableState';
+import { PageHeader, SlideOver, VisualSelector, PageTransition } from '../components/common';
+import { DetailDrawer } from '../components/data';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
 
 interface User {
   id: string;
@@ -25,7 +27,7 @@ interface User {
   phone: string | null;
   role: string;
   area_id: string | null;
-  status: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -49,6 +51,15 @@ const roleLabels: Record<string, string> = {
 const OTP_ROLES = ['citizen'];
 const PASSWORD_ROLES = ['sweeper', 'tps_operator', 'collector', 'driver', 'tpst_operator', 'dlh_admin', 'super_admin'];
 
+const userFilterDefs: FilterDef[] = [
+  {
+    key: 'role',
+    label: 'Peran',
+    type: 'select',
+    options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })),
+  },
+];
+
 const createUserSchema = z.object({
   name: z.string().min(2, 'Minimal 2 karakter'),
   role: z.string().min(1, 'Pilih peran'),
@@ -60,9 +71,9 @@ const createUserSchema = z.object({
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
 
+const columnHelper = createColumnHelper<User>();
+
 const UserPage: React.FC = () => {
-  const tableState = useTableState<User>({ searchFields: ['name', 'email', 'phone'] });
-  const [activeTab, setActiveTab] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [drawerRecord, setDrawerRecord] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | undefined>();
@@ -73,22 +84,83 @@ const UserPage: React.FC = () => {
     defaultValues: { name: '', role: '', email: '', password: '', phone: '', areaId: '' },
   });
 
-  const fetchData = async (role?: string) => {
-    tableState.setLoading(true);
-    try {
-      const params = role && role !== 'all' ? { role } : {};
-      const { data } = await api.get('/users', { params });
-      tableState.setData(Array.isArray(data) ? data : []);
-    } catch { toast.error('Gagal memuat data pengguna'); }
-    tableState.setLoading(false);
-  };
+  const columnDefs = useMemo(() => [
+    columnHelper.accessor('name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Nama" />,
+      cell: ({ getValue, table }) => {
+        const searchText = (table.options.meta as any)?.searchText ?? '';
+        return <Highlight text={getValue()} query={searchText} />;
+      },
+      size: 160,
+      enableSorting: true,
+    }),
+    columnHelper.accessor('email', {
+      id: 'contact',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Email / HP" />,
+      cell: ({ row, table }) => {
+        const searchText = (table.options.meta as any)?.searchText ?? '';
+        const value = row.original.email || row.original.phone || '-';
+        return <Highlight text={value} query={searchText} />;
+      },
+      size: 180,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('role', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Peran" />,
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return (
+          <Badge variant="outline" className={roleColors[v] || ''}>
+            {roleLabels[v] || v}
+          </Badge>
+        );
+      },
+      size: 130,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('area_id', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Area" />,
+      cell: ({ getValue }) => getValue() || '-',
+      size: 120,
+      enableSorting: false,
+    }),
+    columnHelper.accessor('created_at', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Terdaftar" />,
+      cell: ({ getValue }) => dayjs(getValue()).format('DD MMM YYYY'),
+      size: 120,
+      enableSorting: true,
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: () => <span className="text-xs font-medium">Aksi</span>,
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDrawerRecord(row.original); }}>
+              <Eye className="h-3.5 w-3.5 mr-2" />
+              Detail
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+      size: 80,
+    }),
+  ], []);
 
-  useEffect(() => { fetchData(); }, []);
-
-  const handleTabChange = (key: string) => {
-    setActiveTab(key);
-    fetchData(key);
-  };
+  const {
+    table, data, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<User>({
+    endpoint: '/users',
+    columnDefs,
+    defaultSort: { field: 'name', order: 'asc' },
+    filterDefs: userFilterDefs,
+  });
 
   const handleCreate = async (values: CreateUserForm) => {
     setSubmitting(true);
@@ -98,52 +170,10 @@ const UserPage: React.FC = () => {
       setModalOpen(false);
       form.reset();
       setSelectedRole(undefined);
-      fetchData(activeTab);
+      refetch();
     } catch { toast.error('Gagal membuat pengguna'); }
     setSubmitting(false);
   };
-
-  const columns = [
-    { title: 'Nama', dataIndex: 'name', sorter: true, width: 160 },
-    {
-      title: 'Email / HP', key: 'contact', width: 180, ellipsis: true,
-      render: (_: any, r: User) => r.email || r.phone || '-',
-    },
-    {
-      title: 'Role', dataIndex: 'role', width: 130,
-      render: (v: string) => (
-        <Badge variant="outline" className={roleColors[v] || ''}>
-          {roleLabels[v] || v}
-        </Badge>
-      ),
-    },
-    { title: 'Area', dataIndex: 'area_id', width: 120, ellipsis: true, render: (v: string) => v || '-' },
-    { title: 'Status', dataIndex: 'status', width: 100, render: (v: string) => <StatusBadge status={v || 'active'} /> },
-    { title: 'Terdaftar', dataIndex: 'created_at', width: 120, render: (v: string) => dayjs(v).format('DD MMM YYYY') },
-    {
-      title: 'Aksi', key: 'actions', width: 80,
-      render: (_: any, record: User) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDrawerRecord(record); }}>
-              <Eye className="h-3.5 w-3.5 mr-2" />
-              Detail
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
-
-  const tabItems = [
-    { key: 'all', label: 'Semua' },
-    ...Object.entries(roleLabels).map(([key, label]) => ({ key, label })),
-  ];
 
   return (
     <PageTransition>
@@ -155,30 +185,22 @@ const UserPage: React.FC = () => {
         primaryAction={{ label: 'Tambah Pengguna', onClick: () => setModalOpen(true) }}
       />
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-        <TabsList className="h-auto flex-wrap">
-          {tabItems.map((item) => (
-            <TabsTrigger key={item.key} value={item.key} className="text-xs">
-              {item.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <SmartTable<User>
-        tableState={tableState}
-        columns={columns}
+      <DataTable
+        table={table}
+        meta={meta}
+        isLoading={isLoading}
+        searchText={searchText}
+        onSearchChange={setSearchText}
         searchPlaceholder="Cari nama, email, atau nomor HP..."
-        exportFileName="data-pengguna"
-        exportColumns={[
-          { title: 'Nama', dataIndex: 'name' },
-          { title: 'Email', dataIndex: 'email' },
-          { title: 'HP', dataIndex: 'phone' },
-          { title: 'Role', dataIndex: 'role', render: (v: string) => roleLabels[v] || v },
-          { title: 'Status', dataIndex: 'status' },
-          { title: 'Terdaftar', dataIndex: 'created_at' },
-        ]}
-        onRefresh={() => fetchData(activeTab)}
+        filters={filters}
+        onFilterChange={setFilter}
+        onResetFilters={resetFilters}
+        activeFilterCount={activeFilterCount}
+        filterDefs={userFilterDefs}
+        filterLabels={{ role: 'Peran' }}
+        onPageChange={(p) => (table as any)._setPage(p)}
+        onLimitChange={(l) => (table as any)._setLimit(l)}
+        onRefresh={refetch}
         onRowClick={(r) => setDrawerRecord(r)}
         emptyTitle="Tidak ada pengguna"
         emptyDescription="Tambahkan pengguna pertama"
@@ -268,7 +290,6 @@ const UserPage: React.FC = () => {
           { label: 'Role', value: <Badge variant="outline" className={roleColors[drawerRecord.role]}>{roleLabels[drawerRecord.role] || drawerRecord.role}</Badge> },
           { label: 'Email', value: drawerRecord.email || '-' },
           { label: 'HP', value: drawerRecord.phone || '-' },
-          { label: 'Status', value: <StatusBadge status={drawerRecord.status || 'active'} /> },
           { label: 'Area', value: drawerRecord.area_id || '-' },
           { label: 'Terdaftar', value: dayjs(drawerRecord.created_at).format('DD MMM YYYY, HH:mm') },
         ] : []}
