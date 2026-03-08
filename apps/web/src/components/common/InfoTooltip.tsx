@@ -1,6 +1,6 @@
 import React from 'react';
-import { Tooltip } from 'antd';
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface InfoTooltipProps {
   text: string;
@@ -8,9 +8,14 @@ interface InfoTooltipProps {
 }
 
 export const InfoTooltip: React.FC<InfoTooltipProps> = ({ text, placement = 'top' }) => (
-  <Tooltip title={text} placement={placement}>
-    <InfoCircleOutlined
-      style={{ color: 'rgba(0,0,0,0.35)', marginLeft: 4, cursor: 'help', fontSize: 13 }}
-    />
-  </Tooltip>
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="inline h-3.5 w-3.5 text-muted-foreground/50 ml-1 cursor-help" />
+      </TooltipTrigger>
+      <TooltipContent side={placement}>
+        <p className="text-xs">{text}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 );

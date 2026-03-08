@@ -1,33 +1,47 @@
 import React from 'react';
-import { Tag } from 'antd';
-import { STATUS_COLORS as SEMANTIC } from '../../theme/colors';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-const STATUS_COLOR_MAP: Record<string, string> = {
-  // TPS
-  active: SEMANTIC.positive,
-  full: SEMANTIC.negative,
-  maintenance: SEMANTIC.warning,
-  // Complaint
-  submitted: SEMANTIC.info,
-  verified: '#06B6D4',
-  assigned: SEMANTIC.warning,
-  in_progress: '#EAB308',
-  resolved: SEMANTIC.positive,
-  rejected: SEMANTIC.negative,
-  // Payment
-  pending: SEMANTIC.warning,
-  paid: SEMANTIC.positive,
-  failed: SEMANTIC.negative,
-  expired: SEMANTIC.neutral,
-  refunded: '#8B5CF6',
-  // Vehicle
-  available: SEMANTIC.positive,
-  in_use: SEMANTIC.info,
-  // Schedule
-  completed: SEMANTIC.positive,
-  cancelled: SEMANTIC.negative,
-  // User
-  inactive: SEMANTIC.negative,
+const STATUS_VARIANT_MAP: Record<string, string> = {
+  active: 'bg-positive/10 text-positive border-positive/20',
+  full: 'bg-negative/10 text-negative border-negative/20',
+  maintenance: 'bg-warning/10 text-warning border-warning/20',
+  submitted: 'bg-info/10 text-info border-info/20',
+  verified: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+  assigned: 'bg-warning/10 text-warning border-warning/20',
+  in_progress: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+  resolved: 'bg-positive/10 text-positive border-positive/20',
+  rejected: 'bg-negative/10 text-negative border-negative/20',
+  pending: 'bg-warning/10 text-warning border-warning/20',
+  paid: 'bg-positive/10 text-positive border-positive/20',
+  failed: 'bg-negative/10 text-negative border-negative/20',
+  expired: 'bg-neutral/10 text-neutral border-neutral/20',
+  refunded: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  available: 'bg-positive/10 text-positive border-positive/20',
+  in_use: 'bg-info/10 text-info border-info/20',
+  completed: 'bg-positive/10 text-positive border-positive/20',
+  cancelled: 'bg-negative/10 text-negative border-negative/20',
+  inactive: 'bg-negative/10 text-negative border-negative/20',
+};
+
+const STATUS_DOT_COLOR: Record<string, string> = {
+  active: 'bg-positive',
+  full: 'bg-negative',
+  maintenance: 'bg-warning',
+  submitted: 'bg-info',
+  verified: 'bg-cyan-500',
+  assigned: 'bg-warning',
+  in_progress: 'bg-yellow-500',
+  resolved: 'bg-positive',
+  rejected: 'bg-negative',
+  pending: 'bg-warning',
+  paid: 'bg-positive',
+  failed: 'bg-negative',
+  available: 'bg-positive',
+  in_use: 'bg-info',
+  completed: 'bg-positive',
+  cancelled: 'bg-negative',
+  inactive: 'bg-negative',
 };
 
 interface StatusBadgeProps {
@@ -37,25 +51,27 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, dot = false }) => {
-  const color = STATUS_COLOR_MAP[status] || SEMANTIC.neutral;
   const displayLabel = label || status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   if (dot) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span
-          className={status === 'active' ? 'status-dot-active' : undefined}
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: color,
-          }}
-        />
-        <span>{displayLabel}</span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className={cn(
+          'w-2 h-2 rounded-full shrink-0',
+          status === 'active' && 'animate-pulse',
+          STATUS_DOT_COLOR[status] || 'bg-neutral',
+        )} />
+        <span className="text-sm">{displayLabel}</span>
       </span>
     );
   }
 
-  return <Tag color={color}>{displayLabel}</Tag>;
+  return (
+    <Badge
+      variant="outline"
+      className={cn('text-xs', STATUS_VARIANT_MAP[status] || 'bg-neutral/10 text-neutral border-neutral/20')}
+    >
+      {displayLabel}
+    </Badge>
+  );
 };

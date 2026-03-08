@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, Statistic, Typography } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-
-const { Text } = Typography;
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   title: string;
@@ -30,46 +30,45 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    if (navigateTo) navigate(navigateTo);
-  };
-
-  const trendColor = trend
-    ? trend.value > 0 ? '#52c41a' : trend.value < 0 ? '#ff4d4f' : 'rgba(0,0,0,0.45)'
-    : undefined;
-
-  const TrendIcon = trend
-    ? trend.value > 0 ? ArrowUpOutlined : trend.value < 0 ? ArrowDownOutlined : null
-    : null;
+  if (loading) {
+    return (
+      <Card className="h-full">
+        <CardContent className="pt-4 pb-4 space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-16" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card
-      className={navigateTo ? 'glass-card stat-card-clickable' : 'glass-card'}
-      onClick={handleClick}
-      loading={loading}
-      size="small"
-      style={{ height: '100%' }}
+      className={cn('h-full', navigateTo && 'cursor-pointer hover:bg-surface-hover transition-colors')}
+      onClick={() => navigateTo && navigate(navigateTo)}
     >
-      <Statistic
-        title={title}
-        value={formatter ? formatter(value) : value}
-        prefix={prefix}
-        suffix={suffix}
-        valueStyle={{ fontSize: 28, fontWeight: 600, ...valueStyle }}
-      />
-      {trend && (
-        <div style={{ marginTop: 4 }}>
-          {TrendIcon && <TrendIcon style={{ color: trendColor, fontSize: 12, marginRight: 4 }} />}
-          <Text style={{ color: trendColor, fontSize: 12 }}>
-            {Math.abs(trend.value)}%
-          </Text>
-          {trend.label && (
-            <Text style={{ color: 'rgba(0,0,0,0.45)', fontSize: 12, marginLeft: 4 }}>
-              {trend.label}
-            </Text>
-          )}
+      <CardContent className="pt-4 pb-4">
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <div className="flex items-baseline gap-1.5 mt-1">
+          {prefix && <span className="text-muted-foreground">{prefix}</span>}
+          <span className="text-[28px] font-semibold leading-none tabular-nums" style={valueStyle}>
+            {formatter ? formatter(value) : value}
+          </span>
+          {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
         </div>
-      )}
+        {trend && (
+          <div className="flex items-center gap-1 mt-1">
+            {trend.value > 0 && <TrendingUp className="h-3 w-3 text-positive" />}
+            {trend.value < 0 && <TrendingDown className="h-3 w-3 text-negative" />}
+            <span className={cn(
+              'text-xs tabular-nums',
+              trend.value > 0 ? 'text-positive' : trend.value < 0 ? 'text-negative' : 'text-muted-foreground',
+            )}>
+              {Math.abs(trend.value)}%
+            </span>
+            {trend.label && <span className="text-xs text-muted-foreground">{trend.label}</span>}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

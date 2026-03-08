@@ -1,8 +1,6 @@
 import React from 'react';
-import { Button, Empty, Typography } from 'antd';
-import { PlusOutlined, SearchOutlined, InboxOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
+import { Inbox, SearchX, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EmptyStateProps {
   type?: 'no-data' | 'no-results' | 'success';
@@ -14,8 +12,8 @@ interface EmptyStateProps {
 }
 
 const defaultIcons = {
-  'no-data': <InboxOutlined style={{ fontSize: 48, color: 'rgba(0,0,0,0.25)' }} />,
-  'no-results': <SearchOutlined style={{ fontSize: 48, color: 'rgba(0,0,0,0.25)' }} />,
+  'no-data': <Inbox className="h-12 w-12 text-muted-foreground/40" />,
+  'no-results': <SearchX className="h-12 w-12 text-muted-foreground/40" />,
   'success': null,
 };
 
@@ -27,25 +25,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   icon,
 }) => (
-  <Empty
-    image={icon || defaultIcons[type] || Empty.PRESENTED_IMAGE_SIMPLE}
-    imageStyle={{ height: 80 }}
-    description={
-      <div>
-        <Text strong style={{ fontSize: 15 }}>{title}</Text>
-        {description && (
-          <div>
-            <Text type="secondary" style={{ fontSize: 13 }}>{description}</Text>
-          </div>
-        )}
-      </div>
-    }
-    style={{ padding: '48px 0' }}
-  >
+  <div className="flex flex-col items-center justify-center py-12">
+    {(icon || defaultIcons[type]) && (
+      <div className="mb-3">{icon || defaultIcons[type]}</div>
+    )}
+    <p className="text-sm font-medium">{title}</p>
+    {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
     {actionLabel && onAction && (
-      <Button type="primary" icon={<PlusOutlined />} onClick={onAction}>
+      <Button size="sm" className="mt-4 gap-1.5" onClick={onAction}>
+        <Plus className="h-3.5 w-3.5" />
         {actionLabel}
       </Button>
     )}
-  </Empty>
+  </div>
 );
