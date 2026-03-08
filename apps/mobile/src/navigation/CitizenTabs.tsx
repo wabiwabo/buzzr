@@ -1,19 +1,25 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
+import BerandaScreen from '../screens/citizen/BerandaScreen';
+import LaporScreen from '../screens/citizen/LaporScreen';
+import BayarScreen from '../screens/citizen/BayarScreen';
+import ProfilScreen from '../screens/citizen/ProfilScreen';
 
 const Tab = createBottomTabNavigator();
-const Placeholder = ({ title }: { title: string }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{title}</Text></View>
-);
 
 export default function CitizenTabs() {
   return (
-    <Tab.Navigator>
-      <Tab.Screen name="Beranda" component={() => <Placeholder title="Beranda" />} />
-      <Tab.Screen name="Lapor" component={() => <Placeholder title="Lapor" />} />
-      <Tab.Screen name="Bayar" component={() => <Placeholder title="Bayar" />} />
-      <Tab.Screen name="Profil" component={() => <Placeholder title="Profil" />} />
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: '#1890ff',
+        tabBarInactiveTintColor: '#999',
+        headerShown: false,
+      }}
+    >
+      <Tab.Screen name="Beranda" component={BerandaScreen} />
+      <Tab.Screen name="Lapor" component={LaporScreen} />
+      <Tab.Screen name="Bayar" component={BayarScreen} />
+      <Tab.Screen name="Profil" component={ProfilScreen} />
     </Tab.Navigator>
   );
 }
