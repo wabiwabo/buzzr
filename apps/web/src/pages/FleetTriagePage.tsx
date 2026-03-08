@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import api from '@/services/api';
-import { TriageLayout } from '@/components/triage';
-import type { TriageRowData } from '@/components/triage/TriageListRow';
-import type { TriagePreviewData } from '@/components/triage/TriagePreview';
-import { useFacetedFilter } from '@/hooks/useFacetedFilter';
-import { useTriageSelection } from '@/hooks/useTriageSelection';
-import { useTriageKeyboard } from '@/hooks/useTriageKeyboard';
-import { STATUS_LABELS } from '@/theme/tokens';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
+import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
+import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
+import { STATUS_LABELS } from '@/theme/tokens';
 
-interface ApiVehicle {
+interface Vehicle {
   id: string;
   plate_number: string;
   type: string;
@@ -25,116 +25,142 @@ const TYPE_LABELS: Record<string, string> = {
   motorcycle: 'Motor',
 };
 
-const SEVERITY_MAP: Record<string, 'critical' | 'warning' | 'info'> = {
-  maintenance: 'critical',
-  in_use: 'warning',
-  available: 'info',
-};
+const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
-const FACET_DIMENSIONS = [
-  { key: 'status', label: 'Status', getValue: (item: Record<string, unknown>) => item.status as string },
-  { key: 'type', label: 'Tipe', getValue: (item: Record<string, unknown>) => item.type as string },
+const fleetFilterDefs: FilterDef[] = [
+  { key: 'v.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 'v.type', label: 'Tipe', type: 'select', options: typeOptions },
 ];
 
-const GROUP_BY_OPTIONS = [
-  { value: 'none', label: 'Tidak ada' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Tipe' },
-];
-
-function mapToRowData(vehicle: ApiVehicle): TriageRowData & Record<string, unknown> {
-  return {
-    id: vehicle.id,
-    title: vehicle.plate_number,
-    meta: `${TYPE_LABELS[vehicle.type] || vehicle.type} · ${vehicle.capacity_tons}t · ${vehicle.driver_name || 'Belum ditugaskan'}`,
-    severity: SEVERITY_MAP[vehicle.status] || 'info',
-    createdAt: new Date().toISOString(),
-    assigneeName: vehicle.driver_name || undefined,
-    isUnread: vehicle.status === 'maintenance',
-    status: vehicle.status,
-    type: vehicle.type,
-  };
-}
-
-function mapToPreviewData(vehicle: ApiVehicle): TriagePreviewData {
-  return {
-    id: vehicle.id,
-    title: vehicle.plate_number,
-    description: `${TYPE_LABELS[vehicle.type] || vehicle.type}\nKapasitas: ${vehicle.capacity_tons} ton`,
-    status: vehicle.status,
-    category: TYPE_LABELS[vehicle.type] || vehicle.type,
-    assigneeName: vehicle.driver_name || undefined,
-    createdAt: new Date().toISOString(),
-  };
-}
+const columnHelper = createColumnHelper<Vehicle>();
 
 export default function FleetTriagePage() {
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [vehicles, setVehicles] = useState<ApiVehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [groupBy, setGroupBy] = useState('none');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const searchTextRef = useRef('');
 
-  const rowItems = useMemo(() => vehicles.map(mapToRowData), [vehicles]);
+  const columns = useMemo(() => [
+    columnHelper.accessor('plate_number', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="No. Polisi" />,
+      cell: (info) => (
+        <span className="text-sm font-medium font-mono">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+    }),
+    columnHelper.accessor('type', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tipe" />,
+      cell: (info) => (
+        <Badge variant="outline" className="text-xs">
+          {TYPE_LABELS[info.getValue()] || info.getValue()}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor('capacity_tons', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Kapasitas" />,
+      cell: (info) => <span className="text-sm tabular-nums">{info.getValue()} ton</span>,
+    }),
+    columnHelper.accessor('driver_name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pengemudi" />,
+      cell: (info) => (
+        <span className="text-sm">
+          <Highlight text={info.getValue() || 'Belum ditugaskan'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('status', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
+    }),
+  ], []);
 
-  const { filtered, facetCounts, search, setSearch, toggleFilter, removeFilter, resetFilters, activeFilters } =
-    useFacetedFilter({ items: rowItems, dimensions: FACET_DIMENSIONS, searchFields: ['title', 'meta'] });
-
-  const { selectedId, checkedIds, select, selectNext, selectPrev, toggleCheck, checkRange, clearChecked } =
-    useTriageSelection({ items: filtered as TriageRowData[], getId: (item) => item.id });
-
-  const previewData = useMemo(() => {
-    if (!selectedId) return null;
-    const v = vehicles.find((v) => v.id === selectedId);
-    return v ? mapToPreviewData(v) : null;
-  }, [selectedId, vehicles]);
-
-  const fetchVehicles = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/fleet');
-      setVehicles(res.data);
-    } catch {
-      toast.error('Gagal memuat data armada');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
-
-  const handleAssign = useCallback(async (_id: string) => {
-    toast.info('Penugasan driver akan tersedia segera');
-  }, []);
-
-  useTriageKeyboard({
-    onNext: selectNext, onPrev: selectPrev,
-    onTogglePreview: () => {}, onOpenDetail: () => {},
-    onAssign: () => { if (selectedId) handleAssign(selectedId); },
-    onStatusChange: () => {}, onResolve: () => {}, onReject: () => {},
-    onAddNote: () => {}, onCyclePriority: () => {},
-    onFocusSearch: () => searchRef.current?.focus(),
-    onShowHelp: () => {}, onToggleSidebar: () => {},
-    onClearSelection: clearChecked,
+  const {
+    table, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<Vehicle>({
+    endpoint: '/fleet',
+    columnDefs: columns,
+    defaultSort: { field: 'v.plate_number', order: 'asc' },
+    filterDefs: fleetFilterDefs,
   });
 
-  return (
-    <div className="p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">Armada</h1>
-        <p className="text-sm text-muted-foreground">{filtered.length} dari {rowItems.length} kendaraan</p>
+  searchTextRef.current = searchText;
+
+  useDataTableKeyboard({
+    table,
+    activeIndex,
+    setActiveIndex,
+    onEnter: (row) => setSelectedVehicle(row),
+    onEscape: () => setSelectedVehicle(null),
+  });
+
+  const renderPreview = useCallback(() => {
+    if (!selectedVehicle) return null;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-sm font-mono">{selectedVehicle.plate_number}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {TYPE_LABELS[selectedVehicle.type] || selectedVehicle.type} · {selectedVehicle.capacity_tons} ton
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <StatusBadge status={selectedVehicle.status} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Pengemudi</span>
+            <span className="text-sm">{selectedVehicle.driver_name || 'Belum ditugaskan'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Kapasitas</span>
+            <span className="text-sm tabular-nums">{selectedVehicle.capacity_tons} ton</span>
+          </div>
+        </div>
       </div>
-      <TriageLayout
-        items={filtered as TriageRowData[]} loading={loading}
-        selectedId={selectedId} checkedIds={checkedIds}
-        onSelect={select} onCheck={toggleCheck} onShiftClick={checkRange} onClearChecked={clearChecked}
-        search={search} onSearchChange={setSearch} searchRef={searchRef}
-        groupBy={groupBy} onGroupByChange={setGroupBy} groupByOptions={GROUP_BY_OPTIONS}
-        activeFilters={activeFilters} onRemoveFilter={removeFilter}
-        onRefresh={fetchVehicles} onShowHelp={() => {}}
-        onBulkAssign={() => {}} onBulkStatus={() => {}}
-        previewData={previewData}
-        onStatusTransition={() => {}} onAssign={handleAssign}
-      />
-    </div>
+    );
+  }, [selectedVehicle]);
+
+  return (
+    <PageTransition>
+      <div>
+        <PageHeader
+          title="Armada"
+          description={`${meta.total} kendaraan`}
+          breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Armada' }]}
+        />
+
+        <DataTable
+          table={table}
+          meta={meta}
+          isLoading={isLoading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Cari plat nomor, pengemudi..."
+          filters={filters}
+          onFilterChange={setFilter}
+          onResetFilters={resetFilters}
+          activeFilterCount={activeFilterCount}
+          filterDefs={fleetFilterDefs}
+          filterLabels={{ 'v.status': 'Status', 'v.type': 'Tipe' }}
+          onPageChange={(p) => (table as any)._setPage(p)}
+          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onRefresh={refetch}
+          onRowClick={(r) => setSelectedVehicle(r)}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          previewOpen={!!selectedVehicle}
+          onPreviewClose={() => setSelectedVehicle(null)}
+          renderPreview={renderPreview}
+          previewMode="split"
+          emptyTitle="Tidak ada kendaraan"
+          emptyDescription="Belum ada kendaraan yang terdaftar"
+        />
+      </div>
+    </PageTransition>
   );
 }

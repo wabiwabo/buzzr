@@ -1,17 +1,16 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import api from '@/services/api';
-import { TriageLayout } from '@/components/triage';
-import { FilterSidebar } from '@/components/triage/FilterSidebar';
-import type { TriageRowData } from '@/components/triage/TriageListRow';
-import type { TriagePreviewData } from '@/components/triage/TriagePreview';
-import { useFacetedFilter } from '@/hooks/useFacetedFilter';
-import { useTriageSelection } from '@/hooks/useTriageSelection';
-import { useTriageKeyboard } from '@/hooks/useTriageKeyboard';
-import { useSavedViews } from '@/hooks/useSavedViews';
-import { STATUS_LABELS } from '@/theme/tokens';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
 import { toast } from 'sonner';
+import api from '@/services/api';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
+import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
+import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
+import { STATUS_LABELS } from '@/theme/tokens';
 
-interface ApiTps {
+interface Tps {
   id: string;
   name: string;
   type: string;
@@ -31,140 +30,177 @@ const TYPE_LABELS: Record<string, string> = {
   bank_sampah: 'Bank Sampah',
 };
 
-const SEVERITY_MAP: Record<string, 'critical' | 'warning' | 'info'> = {
-  full: 'critical',
-  maintenance: 'warning',
-  active: 'info',
-};
+const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
-const FACET_DIMENSIONS = [
-  { key: 'status', label: 'Status', getValue: (item: Record<string, unknown>) => item.status as string },
-  { key: 'type', label: 'Tipe', getValue: (item: Record<string, unknown>) => item.type as string },
+const tpsFilterDefs: FilterDef[] = [
+  { key: 'tp.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 'tp.type', label: 'Tipe', type: 'select', options: typeOptions },
 ];
 
-const GROUP_BY_OPTIONS = [
-  { value: 'none', label: 'Tidak ada' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Tipe' },
-];
-
-const DEFAULT_VIEWS: Array<{ id: string; name: string; filters: Record<string, string[]> }> = [
-  { id: 'all', name: 'Semua', filters: {} },
-  { id: 'full', name: 'TPS Penuh', filters: { status: ['full'] } },
-  { id: 'maintenance', name: 'Pemeliharaan', filters: { status: ['maintenance'] } },
-];
-
-function mapToRowData(tps: ApiTps): TriageRowData & Record<string, unknown> {
-  const loadPct = tps.capacity_tons > 0 ? Math.round((tps.current_load_tons / tps.capacity_tons) * 100) : 0;
-  return {
-    id: tps.id,
-    title: tps.name,
-    meta: `${TYPE_LABELS[tps.type] || tps.type} · ${tps.address?.slice(0, 40) || ''} · ${loadPct}%`,
-    severity: SEVERITY_MAP[tps.status] || 'info',
-    createdAt: new Date().toISOString(),
-    isUnread: tps.status === 'full',
-    status: tps.status,
-    type: tps.type,
-  };
-}
-
-function mapToPreviewData(tps: ApiTps): TriagePreviewData {
-  const loadPct = tps.capacity_tons > 0 ? Math.round((tps.current_load_tons / tps.capacity_tons) * 100) : 0;
-  return {
-    id: tps.id,
-    title: tps.name,
-    description: `Kapasitas: ${tps.current_load_tons}/${tps.capacity_tons} ton (${loadPct}%)`,
-    status: tps.status,
-    category: TYPE_LABELS[tps.type] || tps.type,
-    address: tps.address,
-    coordinates: tps.latitude && tps.longitude ? { lat: tps.latitude, lng: tps.longitude } : undefined,
-    createdAt: new Date().toISOString(),
-  };
-}
+const columnHelper = createColumnHelper<Tps>();
 
 export default function TpsTriagePage() {
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [tpsList, setTpsList] = useState<ApiTps[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [groupBy, setGroupBy] = useState('none');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedTps, setSelectedTps] = useState<Tps | null>(null);
+  const searchTextRef = useRef('');
 
-  const rowItems = useMemo(() => tpsList.map(mapToRowData), [tpsList]);
+  const columns = useMemo(() => [
+    columnHelper.accessor('name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Nama" />,
+      cell: (info) => (
+        <span className="text-sm font-medium">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+    }),
+    columnHelper.accessor('type', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tipe" />,
+      cell: (info) => (
+        <Badge variant="outline" className="text-xs">
+          {TYPE_LABELS[info.getValue()] || info.getValue()}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor('status', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
+    }),
+    columnHelper.accessor('address', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Alamat" />,
+      cell: (info) => (
+        <span className="line-clamp-1 text-sm text-muted-foreground">
+          <Highlight text={info.getValue()?.slice(0, 40) || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('capacity_tons', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Kapasitas" />,
+      cell: (info) => <span className="text-sm tabular-nums">{info.getValue()} ton</span>,
+    }),
+    columnHelper.display({
+      id: 'load_pct',
+      header: 'Beban',
+      cell: ({ row }) => {
+        const cap = row.original.capacity_tons;
+        const load = row.original.current_load_tons;
+        const pct = cap > 0 ? Math.round((load / cap) * 100) : 0;
+        return (
+          <span className={`text-sm tabular-nums ${pct >= 90 ? 'text-destructive font-medium' : pct >= 70 ? 'text-amber-600' : ''}`}>
+            {pct}%
+          </span>
+        );
+      },
+    }),
+  ], []);
 
-  const { filtered, facetCounts, search, setSearch, toggleFilter, removeFilter, resetFilters, activeFilters } =
-    useFacetedFilter({ items: rowItems, dimensions: FACET_DIMENSIONS, searchFields: ['title', 'meta'] });
-
-  const { selectedId, checkedIds, select, selectNext, selectPrev, toggleCheck, checkRange, clearChecked } =
-    useTriageSelection({ items: filtered as TriageRowData[], getId: (item) => item.id });
-
-  const { views, activeViewId, selectView } = useSavedViews('tps', DEFAULT_VIEWS);
-
-  const previewData = useMemo(() => {
-    if (!selectedId) return null;
-    const tps = tpsList.find((t) => t.id === selectedId);
-    return tps ? mapToPreviewData(tps) : null;
-  }, [selectedId, tpsList]);
-
-  const fetchTps = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/tps');
-      setTpsList(res.data);
-    } catch {
-      toast.error('Gagal memuat data TPS');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchTps(); }, [fetchTps]);
-
-  const handleStatusTransition = useCallback(async (_id: string, _newStatus: string) => {
-    toast.info('Perubahan status TPS akan tersedia segera');
-  }, []);
-
-  const handleAssign = useCallback(async (_id: string) => {
-    toast.info('Penugasan TPS akan tersedia segera');
-  }, []);
-
-  useTriageKeyboard({
-    onNext: selectNext, onPrev: selectPrev,
-    onTogglePreview: () => {}, onOpenDetail: () => {},
-    onAssign: () => {}, onStatusChange: () => {},
-    onResolve: () => {}, onReject: () => {},
-    onAddNote: () => {}, onCyclePriority: () => {},
-    onFocusSearch: () => searchRef.current?.focus(),
-    onShowHelp: () => {}, onToggleSidebar: () => {},
-    onClearSelection: clearChecked,
+  const {
+    table, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<Tps>({
+    endpoint: '/tps',
+    columnDefs: columns,
+    defaultSort: { field: 'tp.name', order: 'asc' },
+    filterDefs: tpsFilterDefs,
   });
 
-  return (
-    <div className="p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">TPS</h1>
-        <p className="text-sm text-muted-foreground">{filtered.length} dari {rowItems.length} TPS</p>
+  searchTextRef.current = searchText;
+
+  useDataTableKeyboard({
+    table,
+    activeIndex,
+    setActiveIndex,
+    onEnter: (row) => setSelectedTps(row),
+    onEscape: () => setSelectedTps(null),
+  });
+
+  const handleStatusTransition = useCallback(async (id: string, newStatus: string) => {
+    try {
+      await api.patch(`/tps/${id}`, { status: newStatus });
+      toast.success(`Status TPS diubah ke ${STATUS_LABELS[newStatus] || newStatus}`);
+      refetch();
+      setSelectedTps(null);
+    } catch {
+      toast.error('Gagal mengubah status TPS');
+    }
+  }, [refetch]);
+
+  const renderPreview = useCallback(() => {
+    if (!selectedTps) return null;
+    const loadPct = selectedTps.capacity_tons > 0
+      ? Math.round((selectedTps.current_load_tons / selectedTps.capacity_tons) * 100) : 0;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-sm">{selectedTps.name}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {TYPE_LABELS[selectedTps.type] || selectedTps.type}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <StatusBadge status={selectedTps.status} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Kapasitas</span>
+            <span className="text-sm tabular-nums">{selectedTps.current_load_tons}/{selectedTps.capacity_tons} ton ({loadPct}%)</span>
+          </div>
+          {selectedTps.address && (
+            <div>
+              <span className="text-xs text-muted-foreground block">Alamat</span>
+              <span className="text-sm">{selectedTps.address}</span>
+            </div>
+          )}
+          {selectedTps.latitude && selectedTps.longitude && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Koordinat</span>
+              <span className="text-sm tabular-nums">{selectedTps.latitude.toFixed(5)}, {selectedTps.longitude.toFixed(5)}</span>
+            </div>
+          )}
+        </div>
       </div>
-      <TriageLayout
-        items={filtered as TriageRowData[]} loading={loading}
-        selectedId={selectedId} checkedIds={checkedIds}
-        onSelect={select} onCheck={toggleCheck} onShiftClick={checkRange} onClearChecked={clearChecked}
-        search={search} onSearchChange={setSearch} searchRef={searchRef}
-        groupBy={groupBy} onGroupByChange={setGroupBy} groupByOptions={GROUP_BY_OPTIONS}
-        activeFilters={activeFilters} onRemoveFilter={removeFilter}
-        onRefresh={fetchTps} onShowHelp={() => {}}
-        onBulkAssign={() => {}} onBulkStatus={() => {}}
-        previewData={previewData} onStatusTransition={handleStatusTransition} onAssign={handleAssign}
-        filterSidebar={
-          <FilterSidebar
-            views={views} activeViewId={activeViewId} onSelectView={selectView}
-            facets={[
-              { key: 'status', label: 'Status', labelMap: STATUS_LABELS },
-              { key: 'type', label: 'Tipe', labelMap: TYPE_LABELS },
-            ]}
-            facetCounts={facetCounts} onToggleFilter={toggleFilter}
-            onResetFilters={resetFilters} hasActiveFilters={activeFilters.length > 0}
-          />
-        }
-      />
-    </div>
+    );
+  }, [selectedTps]);
+
+  return (
+    <PageTransition>
+      <div>
+        <PageHeader
+          title="TPS"
+          description={`${meta.total} titik pengumpulan`}
+          breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'TPS' }]}
+        />
+
+        <DataTable
+          table={table}
+          meta={meta}
+          isLoading={isLoading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Cari nama, alamat..."
+          filters={filters}
+          onFilterChange={setFilter}
+          onResetFilters={resetFilters}
+          activeFilterCount={activeFilterCount}
+          filterDefs={tpsFilterDefs}
+          filterLabels={{ 'tp.status': 'Status', 'tp.type': 'Tipe' }}
+          onPageChange={(p) => (table as any)._setPage(p)}
+          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onRefresh={refetch}
+          onRowClick={(r) => setSelectedTps(r)}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          previewOpen={!!selectedTps}
+          onPreviewClose={() => setSelectedTps(null)}
+          renderPreview={renderPreview}
+          previewMode="split"
+          emptyTitle="Tidak ada TPS"
+          emptyDescription="Belum ada titik pengumpulan yang terdaftar"
+        />
+      </div>
+    </PageTransition>
   );
 }

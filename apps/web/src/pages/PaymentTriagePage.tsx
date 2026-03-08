@@ -1,17 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import api from '@/services/api';
-import { TriageLayout } from '@/components/triage';
-import { FilterSidebar } from '@/components/triage/FilterSidebar';
-import type { TriageRowData } from '@/components/triage/TriageListRow';
-import type { TriagePreviewData } from '@/components/triage/TriagePreview';
-import { useFacetedFilter } from '@/hooks/useFacetedFilter';
-import { useTriageSelection } from '@/hooks/useTriageSelection';
-import { useTriageKeyboard } from '@/hooks/useTriageKeyboard';
-import { useSavedViews } from '@/hooks/useSavedViews';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
+import dayjs from 'dayjs';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
+import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
+import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
 import { STATUS_LABELS } from '@/theme/tokens';
-import { toast } from 'sonner';
 
-interface ApiPayment {
+interface Payment {
   id: string;
   user_id: string;
   user_name?: string;
@@ -31,137 +29,164 @@ const TYPE_LABELS: Record<string, string> = {
   payout: 'Pencairan',
 };
 
-const SEVERITY_MAP: Record<string, 'critical' | 'warning' | 'info'> = {
-  failed: 'critical',
-  pending: 'warning',
-  paid: 'info',
-};
-
-const FACET_DIMENSIONS = [
-  { key: 'status', label: 'Status', getValue: (item: Record<string, unknown>) => item.status as string },
-  { key: 'type', label: 'Tipe', getValue: (item: Record<string, unknown>) => item.type as string },
-];
-
-const GROUP_BY_OPTIONS = [
-  { value: 'none', label: 'Tidak ada' },
-  { value: 'status', label: 'Status' },
-  { value: 'type', label: 'Tipe' },
-];
-
-const DEFAULT_VIEWS: Array<{ id: string; name: string; filters: Record<string, string[]> }> = [
-  { id: 'all', name: 'Semua', filters: {} },
-  { id: 'pending', name: 'Menunggu', filters: { status: ['pending'] } },
-  { id: 'failed', name: 'Gagal', filters: { status: ['failed'] } },
-];
-
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
 }
 
-function mapToRowData(payment: ApiPayment): TriageRowData & Record<string, unknown> {
-  return {
-    id: payment.id,
-    title: `${formatCurrency(payment.amount)} — ${payment.user_name || payment.user_id}`,
-    meta: `${TYPE_LABELS[payment.type] || payment.type} · ${payment.description?.slice(0, 40) || ''}`,
-    severity: SEVERITY_MAP[payment.status] || 'info',
-    createdAt: payment.created_at,
-    isUnread: payment.status === 'pending',
-    status: payment.status,
-    type: payment.type,
-  };
-}
+const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
-function mapToPreviewData(payment: ApiPayment): TriagePreviewData {
-  return {
-    id: payment.id,
-    title: `${formatCurrency(payment.amount)}`,
-    description: payment.description || '',
-    status: payment.status,
-    category: TYPE_LABELS[payment.type] || payment.type,
-    reporterName: payment.user_name || payment.user_id,
-    createdAt: payment.created_at,
-    timeline: [
-      { time: payment.created_at, label: `Pembayaran dibuat: ${TYPE_LABELS[payment.type] || payment.type}`, type: 'created' as 'created' },
-    ],
-  };
-}
+const paymentFilterDefs: FilterDef[] = [
+  { key: 'p.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 'p.type', label: 'Tipe', type: 'select', options: typeOptions },
+];
+
+const columnHelper = createColumnHelper<Payment>();
 
 export default function PaymentTriagePage() {
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [payments, setPayments] = useState<ApiPayment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [groupBy, setGroupBy] = useState('none');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const searchTextRef = useRef('');
 
-  const rowItems = useMemo(() => payments.map(mapToRowData), [payments]);
+  const columns = useMemo(() => [
+    columnHelper.accessor('reference_id', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Referensi" />,
+      cell: (info) => (
+        <span className="text-sm font-mono">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('type', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tipe" />,
+      cell: (info) => (
+        <Badge variant="outline" className="text-xs">
+          {TYPE_LABELS[info.getValue()] || info.getValue()}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor('amount', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Jumlah" />,
+      cell: (info) => (
+        <span className="text-sm font-medium tabular-nums">{formatCurrency(info.getValue())}</span>
+      ),
+    }),
+    columnHelper.accessor('status', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
+    }),
+    columnHelper.accessor('user_name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pengguna" />,
+      cell: (info) => (
+        <span className="text-sm">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('created_at', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tanggal" />,
+      cell: (info) => (
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {dayjs(info.getValue()).format('DD MMM YY')}
+        </span>
+      ),
+    }),
+  ], []);
 
-  const { filtered, facetCounts, search, setSearch, toggleFilter, removeFilter, resetFilters, activeFilters } =
-    useFacetedFilter({ items: rowItems, dimensions: FACET_DIMENSIONS, searchFields: ['title', 'meta'] });
-
-  const { selectedId, checkedIds, select, selectNext, selectPrev, toggleCheck, checkRange, clearChecked } =
-    useTriageSelection({ items: filtered as TriageRowData[], getId: (item) => item.id });
-
-  const { views, activeViewId, selectView } = useSavedViews('payments', DEFAULT_VIEWS);
-
-  const previewData = useMemo(() => {
-    if (!selectedId) return null;
-    const p = payments.find((p) => p.id === selectedId);
-    return p ? mapToPreviewData(p) : null;
-  }, [selectedId, payments]);
-
-  const fetchPayments = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/payments');
-      setPayments(res.data);
-    } catch {
-      toast.error('Gagal memuat data pembayaran');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchPayments(); }, [fetchPayments]);
-
-  useTriageKeyboard({
-    onNext: selectNext, onPrev: selectPrev,
-    onTogglePreview: () => {}, onOpenDetail: () => {},
-    onAssign: () => {}, onStatusChange: () => {},
-    onResolve: () => {}, onReject: () => {},
-    onAddNote: () => {}, onCyclePriority: () => {},
-    onFocusSearch: () => searchRef.current?.focus(),
-    onShowHelp: () => {}, onToggleSidebar: () => {},
-    onClearSelection: clearChecked,
+  const {
+    table, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<Payment>({
+    endpoint: '/payments',
+    columnDefs: columns,
+    defaultSort: { field: 'p.created_at', order: 'desc' },
+    filterDefs: paymentFilterDefs,
   });
 
-  return (
-    <div className="p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">Pembayaran</h1>
-        <p className="text-sm text-muted-foreground">{filtered.length} dari {rowItems.length} pembayaran</p>
+  searchTextRef.current = searchText;
+
+  useDataTableKeyboard({
+    table,
+    activeIndex,
+    setActiveIndex,
+    onEnter: (row) => setSelectedPayment(row),
+    onEscape: () => setSelectedPayment(null),
+  });
+
+  const renderPreview = useCallback(() => {
+    if (!selectedPayment) return null;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-sm">{formatCurrency(selectedPayment.amount)}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {TYPE_LABELS[selectedPayment.type] || selectedPayment.type}
+            {selectedPayment.reference_id && ` · ${selectedPayment.reference_id}`}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <StatusBadge status={selectedPayment.status} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Pengguna</span>
+            <span className="text-sm">{selectedPayment.user_name || selectedPayment.user_id}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Tanggal</span>
+            <span className="text-sm tabular-nums">{dayjs(selectedPayment.created_at).format('DD MMM YYYY, HH:mm')}</span>
+          </div>
+          {selectedPayment.description && (
+            <div>
+              <span className="text-xs text-muted-foreground block">Deskripsi</span>
+              <span className="text-sm">{selectedPayment.description}</span>
+            </div>
+          )}
+        </div>
       </div>
-      <TriageLayout
-        items={filtered as TriageRowData[]} loading={loading}
-        selectedId={selectedId} checkedIds={checkedIds}
-        onSelect={select} onCheck={toggleCheck} onShiftClick={checkRange} onClearChecked={clearChecked}
-        search={search} onSearchChange={setSearch} searchRef={searchRef}
-        groupBy={groupBy} onGroupByChange={setGroupBy} groupByOptions={GROUP_BY_OPTIONS}
-        activeFilters={activeFilters} onRemoveFilter={removeFilter}
-        onRefresh={fetchPayments} onShowHelp={() => {}}
-        onBulkAssign={() => {}} onBulkStatus={() => {}}
-        previewData={previewData}
-        onStatusTransition={() => {}} onAssign={() => {}}
-        filterSidebar={
-          <FilterSidebar
-            views={views} activeViewId={activeViewId} onSelectView={selectView}
-            facets={[
-              { key: 'status', label: 'Status', labelMap: STATUS_LABELS },
-              { key: 'type', label: 'Tipe', labelMap: TYPE_LABELS },
-            ]}
-            facetCounts={facetCounts} onToggleFilter={toggleFilter}
-            onResetFilters={resetFilters} hasActiveFilters={activeFilters.length > 0}
-          />
-        }
-      />
-    </div>
+    );
+  }, [selectedPayment]);
+
+  return (
+    <PageTransition>
+      <div>
+        <PageHeader
+          title="Pembayaran"
+          description={`${meta.total} pembayaran`}
+          breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Pembayaran' }]}
+        />
+
+        <DataTable
+          table={table}
+          meta={meta}
+          isLoading={isLoading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Cari referensi, pengguna..."
+          filters={filters}
+          onFilterChange={setFilter}
+          onResetFilters={resetFilters}
+          activeFilterCount={activeFilterCount}
+          filterDefs={paymentFilterDefs}
+          filterLabels={{ 'p.status': 'Status', 'p.type': 'Tipe' }}
+          onPageChange={(p) => (table as any)._setPage(p)}
+          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onRefresh={refetch}
+          onRowClick={(r) => setSelectedPayment(r)}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          previewOpen={!!selectedPayment}
+          onPreviewClose={() => setSelectedPayment(null)}
+          renderPreview={renderPreview}
+          previewMode="split"
+          emptyTitle="Tidak ada pembayaran"
+          emptyDescription="Belum ada transaksi pembayaran"
+        />
+      </div>
+    </PageTransition>
   );
 }

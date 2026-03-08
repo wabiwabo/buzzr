@@ -1,17 +1,15 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import api from '@/services/api';
-import { TriageLayout } from '@/components/triage';
-import { FilterSidebar } from '@/components/triage/FilterSidebar';
-import type { TriageRowData } from '@/components/triage/TriageListRow';
-import type { TriagePreviewData } from '@/components/triage/TriagePreview';
-import { useFacetedFilter } from '@/hooks/useFacetedFilter';
-import { useTriageSelection } from '@/hooks/useTriageSelection';
-import { useTriageKeyboard } from '@/hooks/useTriageKeyboard';
-import { useSavedViews } from '@/hooks/useSavedViews';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
+import dayjs from 'dayjs';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
+import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
+import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
 import { STATUS_LABELS } from '@/theme/tokens';
-import { toast } from 'sonner';
 
-interface ApiSchedule {
+interface Schedule {
   id: string;
   route_name: string;
   vehicle_id: string;
@@ -32,140 +30,172 @@ const TYPE_LABELS: Record<string, string> = {
 
 const DAY_NAMES = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-const SEVERITY_MAP: Record<string, 'critical' | 'warning' | 'info'> = {
-  cancelled: 'critical',
-  in_progress: 'warning',
-  active: 'info',
-  completed: 'info',
-};
-
-const FACET_DIMENSIONS = [
-  { key: 'status', label: 'Status', getValue: (item: Record<string, unknown>) => item.status as string },
-  { key: 'schedule_type', label: 'Tipe', getValue: (item: Record<string, unknown>) => item.schedule_type as string },
-];
-
-const GROUP_BY_OPTIONS = [
-  { value: 'none', label: 'Tidak ada' },
-  { value: 'status', label: 'Status' },
-  { value: 'schedule_type', label: 'Tipe' },
-];
-
-const DEFAULT_VIEWS: Array<{ id: string; name: string; filters: Record<string, string[]> }> = [
-  { id: 'all', name: 'Semua', filters: {} },
-  { id: 'active', name: 'Aktif', filters: { status: ['active', 'in_progress'] } },
-  { id: 'completed', name: 'Selesai', filters: { status: ['completed'] } },
-];
-
 function formatDays(days: number[] | null): string {
-  if (!days || days.length === 0) return '';
+  if (!days || days.length === 0) return '-';
   return days.map((d) => DAY_NAMES[d] || d).join(', ');
 }
 
-function mapToRowData(schedule: ApiSchedule): TriageRowData & Record<string, unknown> {
-  const datePart = schedule.scheduled_date
-    ? new Date(schedule.scheduled_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-    : formatDays(schedule.recurring_days);
-  return {
-    id: schedule.id,
-    title: schedule.route_name,
-    meta: `${TYPE_LABELS[schedule.schedule_type] || schedule.schedule_type} · ${schedule.driver_name || '-'} · ${datePart} ${schedule.start_time}`,
-    severity: SEVERITY_MAP[schedule.status] || 'info',
-    createdAt: schedule.scheduled_date || new Date().toISOString(),
-    assigneeName: schedule.driver_name || undefined,
-    isUnread: schedule.status === 'active',
-    status: schedule.status,
-    schedule_type: schedule.schedule_type,
-  };
-}
+const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
-function mapToPreviewData(schedule: ApiSchedule): TriagePreviewData {
-  return {
-    id: schedule.id,
-    title: schedule.route_name,
-    description: `${TYPE_LABELS[schedule.schedule_type] || schedule.schedule_type}\nWaktu: ${schedule.start_time}\n${schedule.scheduled_date ? `Tanggal: ${new Date(schedule.scheduled_date).toLocaleDateString('id-ID')}` : `Hari: ${formatDays(schedule.recurring_days)}`}`,
-    status: schedule.status,
-    category: TYPE_LABELS[schedule.schedule_type] || schedule.schedule_type,
-    assigneeName: schedule.driver_name || undefined,
-    createdAt: schedule.scheduled_date || new Date().toISOString(),
-  };
-}
+const scheduleFilterDefs: FilterDef[] = [
+  { key: 's.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 's.schedule_type', label: 'Tipe', type: 'select', options: typeOptions },
+];
+
+const columnHelper = createColumnHelper<Schedule>();
 
 export default function ScheduleTriagePage() {
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [schedules, setSchedules] = useState<ApiSchedule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [groupBy, setGroupBy] = useState('none');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const searchTextRef = useRef('');
 
-  const rowItems = useMemo(() => schedules.map(mapToRowData), [schedules]);
+  const columns = useMemo(() => [
+    columnHelper.accessor('route_name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Rute" />,
+      cell: (info) => (
+        <span className="text-sm font-medium">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+    }),
+    columnHelper.accessor('schedule_type', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tipe" />,
+      cell: (info) => (
+        <Badge variant="outline" className="text-xs">
+          {TYPE_LABELS[info.getValue()] || info.getValue()}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor('status', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
+    }),
+    columnHelper.accessor('start_time', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Waktu Mulai" />,
+      cell: (info) => <span className="text-sm tabular-nums">{info.getValue()}</span>,
+    }),
+    columnHelper.accessor('driver_name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pengemudi" />,
+      cell: (info) => (
+        <span className="text-sm">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.display({
+      id: 'schedule_info',
+      header: 'Jadwal',
+      cell: ({ row }) => {
+        const s = row.original;
+        if (s.scheduled_date) {
+          return <span className="text-sm text-muted-foreground">{dayjs(s.scheduled_date).format('DD MMM YY')}</span>;
+        }
+        return <span className="text-sm text-muted-foreground">{formatDays(s.recurring_days)}</span>;
+      },
+    }),
+  ], []);
 
-  const { filtered, facetCounts, search, setSearch, toggleFilter, removeFilter, resetFilters, activeFilters } =
-    useFacetedFilter({ items: rowItems, dimensions: FACET_DIMENSIONS, searchFields: ['title', 'meta'] });
-
-  const { selectedId, checkedIds, select, selectNext, selectPrev, toggleCheck, checkRange, clearChecked } =
-    useTriageSelection({ items: filtered as TriageRowData[], getId: (item) => item.id });
-
-  const { views, activeViewId, selectView } = useSavedViews('schedules', DEFAULT_VIEWS);
-
-  const previewData = useMemo(() => {
-    if (!selectedId) return null;
-    const s = schedules.find((s) => s.id === selectedId);
-    return s ? mapToPreviewData(s) : null;
-  }, [selectedId, schedules]);
-
-  const fetchSchedules = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/schedules');
-      setSchedules(res.data);
-    } catch {
-      toast.error('Gagal memuat data jadwal');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchSchedules(); }, [fetchSchedules]);
-
-  useTriageKeyboard({
-    onNext: selectNext, onPrev: selectPrev,
-    onTogglePreview: () => {}, onOpenDetail: () => {},
-    onAssign: () => {}, onStatusChange: () => {},
-    onResolve: () => {}, onReject: () => {},
-    onAddNote: () => {}, onCyclePriority: () => {},
-    onFocusSearch: () => searchRef.current?.focus(),
-    onShowHelp: () => {}, onToggleSidebar: () => {},
-    onClearSelection: clearChecked,
+  const {
+    table, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<Schedule>({
+    endpoint: '/schedules',
+    columnDefs: columns,
+    defaultSort: { field: 's.start_time', order: 'asc' },
+    filterDefs: scheduleFilterDefs,
   });
 
-  return (
-    <div className="p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">Jadwal</h1>
-        <p className="text-sm text-muted-foreground">{filtered.length} dari {rowItems.length} jadwal</p>
+  searchTextRef.current = searchText;
+
+  useDataTableKeyboard({
+    table,
+    activeIndex,
+    setActiveIndex,
+    onEnter: (row) => setSelectedSchedule(row),
+    onEscape: () => setSelectedSchedule(null),
+  });
+
+  const renderPreview = useCallback(() => {
+    if (!selectedSchedule) return null;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-sm">{selectedSchedule.route_name}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {TYPE_LABELS[selectedSchedule.schedule_type] || selectedSchedule.schedule_type}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <StatusBadge status={selectedSchedule.status} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Waktu Mulai</span>
+            <span className="text-sm tabular-nums">{selectedSchedule.start_time}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Pengemudi</span>
+            <span className="text-sm">{selectedSchedule.driver_name || '-'}</span>
+          </div>
+          {selectedSchedule.vehicle_plate && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Kendaraan</span>
+              <span className="text-sm font-mono">{selectedSchedule.vehicle_plate}</span>
+            </div>
+          )}
+          <div>
+            <span className="text-xs text-muted-foreground block">Jadwal</span>
+            <span className="text-sm">
+              {selectedSchedule.scheduled_date
+                ? dayjs(selectedSchedule.scheduled_date).format('DD MMMM YYYY')
+                : `Hari: ${formatDays(selectedSchedule.recurring_days)}`}
+            </span>
+          </div>
+        </div>
       </div>
-      <TriageLayout
-        items={filtered as TriageRowData[]} loading={loading}
-        selectedId={selectedId} checkedIds={checkedIds}
-        onSelect={select} onCheck={toggleCheck} onShiftClick={checkRange} onClearChecked={clearChecked}
-        search={search} onSearchChange={setSearch} searchRef={searchRef}
-        groupBy={groupBy} onGroupByChange={setGroupBy} groupByOptions={GROUP_BY_OPTIONS}
-        activeFilters={activeFilters} onRemoveFilter={removeFilter}
-        onRefresh={fetchSchedules} onShowHelp={() => {}}
-        onBulkAssign={() => {}} onBulkStatus={() => {}}
-        previewData={previewData}
-        onStatusTransition={() => {}} onAssign={() => {}}
-        filterSidebar={
-          <FilterSidebar
-            views={views} activeViewId={activeViewId} onSelectView={selectView}
-            facets={[
-              { key: 'status', label: 'Status', labelMap: STATUS_LABELS },
-              { key: 'schedule_type', label: 'Tipe', labelMap: TYPE_LABELS },
-            ]}
-            facetCounts={facetCounts} onToggleFilter={toggleFilter}
-            onResetFilters={resetFilters} hasActiveFilters={activeFilters.length > 0}
-          />
-        }
-      />
-    </div>
+    );
+  }, [selectedSchedule]);
+
+  return (
+    <PageTransition>
+      <div>
+        <PageHeader
+          title="Jadwal"
+          description={`${meta.total} jadwal`}
+          breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Jadwal' }]}
+        />
+
+        <DataTable
+          table={table}
+          meta={meta}
+          isLoading={isLoading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Cari rute, pengemudi..."
+          filters={filters}
+          onFilterChange={setFilter}
+          onResetFilters={resetFilters}
+          activeFilterCount={activeFilterCount}
+          filterDefs={scheduleFilterDefs}
+          filterLabels={{ 's.status': 'Status', 's.schedule_type': 'Tipe' }}
+          onPageChange={(p) => (table as any)._setPage(p)}
+          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onRefresh={refetch}
+          onRowClick={(r) => setSelectedSchedule(r)}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          previewOpen={!!selectedSchedule}
+          onPreviewClose={() => setSelectedSchedule(null)}
+          renderPreview={renderPreview}
+          previewMode="split"
+          emptyTitle="Tidak ada jadwal"
+          emptyDescription="Belum ada jadwal yang dibuat"
+        />
+      </div>
+    </PageTransition>
   );
 }
