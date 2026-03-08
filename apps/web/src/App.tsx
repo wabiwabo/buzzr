@@ -10,6 +10,8 @@ import ComplaintPage from './pages/ComplaintPage';
 import PaymentPage from './pages/PaymentPage';
 import UserPage from './pages/UserPage';
 import ReportPage from './pages/ReportPage';
+import LiveOperationsPage from './pages/LiveOperationsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import { useAuthStore } from './stores/auth.store';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,6 +25,8 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<DashboardPage />} />
+        <Route path="live" element={<LiveOperationsPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="tps" element={<TpsPage />} />
         <Route path="fleet" element={<FleetPage />} />
         <Route path="schedules" element={<SchedulePage />} />
