@@ -7,6 +7,8 @@ import { AppHeader } from '../components/layout/AppHeader';
 import { RealtimeToast } from '../components/feedback/RealtimeToast';
 import { OnboardingTour } from '../components/feedback/OnboardingTour';
 import { KeyboardShortcuts } from '../components/feedback/KeyboardShortcuts';
+import { CommandPalette } from '../components/triage/CommandPalette';
+import { useCommandPalette } from '../hooks/useCommandPalette';
 import { WelcomeFlow } from '../components/onboarding';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
@@ -26,6 +28,7 @@ const ROLE_LABELS: Record<string, string> = {
 const DashboardLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { tourOpen, completeTour, restartTour } = useOnboarding();
   const { unreadCount } = useNotificationStore();
@@ -163,6 +166,8 @@ const DashboardLayout: React.FC = () => {
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
       />
+
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
     </Layout>
   );
 };

@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "src/components/ui/dialog"
+} from "@/components/ui/dialog"
 
 function Command({
   className,
