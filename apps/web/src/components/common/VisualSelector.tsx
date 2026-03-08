@@ -1,7 +1,5 @@
 import React from 'react';
-import { Typography } from 'antd';
-
-const { Text } = Typography;
+import { cn } from '@/lib/utils';
 
 interface Option {
   value: string;
@@ -17,7 +15,7 @@ interface VisualSelectorProps {
 }
 
 export const VisualSelector: React.FC<VisualSelectorProps> = ({ options, value, onChange }) => (
-  <div role="radiogroup" style={{ display: 'flex', gap: 12 }}>
+  <div role="radiogroup" className="flex gap-3">
     {options.map((opt) => {
       const selected = value === opt.value;
       return (
@@ -28,25 +26,19 @@ export const VisualSelector: React.FC<VisualSelectorProps> = ({ options, value, 
           tabIndex={0}
           onClick={() => onChange?.(opt.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange?.(opt.value); } }}
-          style={{
-            flex: 1,
-            padding: '12px 16px',
-            borderRadius: 8,
-            border: `2px solid ${selected ? '#2563EB' : '#E5E7EB'}`,
-            background: selected ? '#EFF6FF' : '#FAFAFA',
-            cursor: 'pointer',
-            textAlign: 'center',
-            transition: 'all var(--duration-fast) ease',
-          }}
+          className={cn(
+            'flex-1 p-3 rounded-lg border-2 cursor-pointer text-center transition-colors',
+            selected
+              ? 'border-primary bg-primary/5'
+              : 'border-border bg-muted/30 hover:border-primary/30',
+          )}
         >
-          {opt.icon && <div style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</div>}
-          <Text strong style={{ fontSize: 13, color: selected ? '#2563EB' : '#1F2937' }}>
+          {opt.icon && <div className="text-xl mb-1">{opt.icon}</div>}
+          <span className={cn('text-sm font-medium', selected ? 'text-primary' : 'text-foreground')}>
             {opt.label}
-          </Text>
+          </span>
           {opt.description && (
-            <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-              {opt.description}
-            </Text>
+            <span className="text-xs text-muted-foreground block">{opt.description}</span>
           )}
         </div>
       );

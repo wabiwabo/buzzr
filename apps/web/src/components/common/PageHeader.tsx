@@ -1,11 +1,13 @@
 import React from 'react';
-import { Breadcrumb, Button, Space, Typography } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Button } from '@/components/ui/button';
 
-const { Title, Text } = Typography;
-
-interface BreadcrumbItem {
+interface BreadcrumbItemDef {
   label: string;
   path?: string;
 }
@@ -13,7 +15,7 @@ interface BreadcrumbItem {
 interface PageHeaderProps {
   title: string;
   description?: string;
-  breadcrumbs?: BreadcrumbItem[];
+  breadcrumbs?: BreadcrumbItemDef[];
   primaryAction?: {
     label: string;
     onClick: () => void;
@@ -31,38 +33,44 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const breadcrumbItems = breadcrumbs?.map((item) => ({
-    title: item.path ? (
-      <a onClick={() => navigate(item.path!)}>{item.label}</a>
-    ) : (
-      item.label
-    ),
-  }));
-
   return (
-    <div className="page-header">
-      {breadcrumbItems && breadcrumbItems.length > 0 && (
-        <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 8 }} />
+    <div className="mb-6">
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <Breadcrumb className="mb-2">
+          <BreadcrumbList>
+            {breadcrumbs.map((item, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <BreadcrumbSeparator />}
+                <BreadcrumbItem>
+                  {item.path ? (
+                    <BreadcrumbLink onClick={() => navigate(item.path!)} className="cursor-pointer">
+                      {item.label}
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                  )}
+                </BreadcrumbItem>
+              </React.Fragment>
+            ))}
+          </BreadcrumbList>
+        </Breadcrumb>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="flex justify-between items-start">
         <div>
-          <Title level={4} style={{ margin: 0 }}>{title}</Title>
+          <h4 className="text-lg font-semibold">{title}</h4>
           {description && (
-            <Text className="page-header-description">{description}</Text>
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
-        <Space>
+        <div className="flex items-center gap-2">
           {extra}
           {primaryAction && (
-            <Button
-              type="primary"
-              icon={primaryAction.icon || <PlusOutlined />}
-              onClick={primaryAction.onClick}
-            >
+            <Button size="sm" onClick={primaryAction.onClick} className="gap-1.5">
+              {primaryAction.icon || <Plus className="h-3.5 w-3.5" />}
               {primaryAction.label}
             </Button>
           )}
-        </Space>
+        </div>
       </div>
     </div>
   );

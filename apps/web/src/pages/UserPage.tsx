@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Select, Button, Tabs, Tag, message } from 'antd';
-import { EyeOutlined, MoreOutlined } from '@ant-design/icons';
-import { Dropdown } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { Eye, MoreHorizontal } from 'lucide-react';
 import dayjs from 'dayjs';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import api from '../services/api';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageHeader, StatusBadge, SlideOver, VisualSelector, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
@@ -21,8 +30,14 @@ interface User {
 }
 
 const roleColors: Record<string, string> = {
-  citizen: 'default', sweeper: 'cyan', tps_operator: 'blue', collector: 'purple',
-  driver: 'orange', tpst_operator: 'gold', dlh_admin: 'green', super_admin: 'red',
+  citizen: 'bg-neutral/10 text-neutral border-neutral/20',
+  sweeper: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+  tps_operator: 'bg-info/10 text-info border-info/20',
+  collector: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  driver: 'bg-warning/10 text-warning border-warning/20',
+  tpst_operator: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+  dlh_admin: 'bg-positive/10 text-positive border-positive/20',
+  super_admin: 'bg-negative/10 text-negative border-negative/20',
 };
 
 const roleLabels: Record<string, string> = {
@@ -34,6 +49,17 @@ const roleLabels: Record<string, string> = {
 const OTP_ROLES = ['citizen'];
 const PASSWORD_ROLES = ['sweeper', 'tps_operator', 'collector', 'driver', 'tpst_operator', 'dlh_admin', 'super_admin'];
 
+const createUserSchema = z.object({
+  name: z.string().min(2, 'Minimal 2 karakter'),
+  role: z.string().min(1, 'Pilih peran'),
+  email: z.string().email('Email tidak valid').optional().or(z.literal('')),
+  password: z.string().min(8, 'Minimal 8 karakter').optional().or(z.literal('')),
+  phone: z.string().regex(/^08\d{8,12}$/, 'Format: 08xxxxxxxxxx').optional().or(z.literal('')),
+  areaId: z.string().optional(),
+});
+
+type CreateUserForm = z.infer<typeof createUserSchema>;
+
 const UserPage: React.FC = () => {
   const tableState = useTableState<User>({ searchFields: ['name', 'email', 'phone'] });
   const [activeTab, setActiveTab] = useState('all');
@@ -41,7 +67,11 @@ const UserPage: React.FC = () => {
   const [drawerRecord, setDrawerRecord] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | undefined>();
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+
+  const form = useForm<CreateUserForm>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { name: '', role: '', email: '', password: '', phone: '', areaId: '' },
+  });
 
   const fetchData = async (role?: string) => {
     tableState.setLoading(true);
@@ -49,7 +79,7 @@ const UserPage: React.FC = () => {
       const params = role && role !== 'all' ? { role } : {};
       const { data } = await api.get('/users', { params });
       tableState.setData(Array.isArray(data) ? data : []);
-    } catch { message.error('Gagal memuat data pengguna'); }
+    } catch { toast.error('Gagal memuat data pengguna'); }
     tableState.setLoading(false);
   };
 
@@ -60,43 +90,52 @@ const UserPage: React.FC = () => {
     fetchData(key);
   };
 
-  const handleCreate = async (values: any) => {
+  const handleCreate = async (values: CreateUserForm) => {
     setSubmitting(true);
     try {
       await api.post('/users', values);
-      message.success('Pengguna berhasil dibuat');
+      toast.success('Pengguna berhasil dibuat');
       setModalOpen(false);
-      form.resetFields();
+      form.reset();
       setSelectedRole(undefined);
       fetchData(activeTab);
-    } catch { message.error('Gagal membuat pengguna'); }
+    } catch { toast.error('Gagal membuat pengguna'); }
     setSubmitting(false);
   };
 
-  const columns: ColumnsType<User> = [
+  const columns = [
     { title: 'Nama', dataIndex: 'name', sorter: true, width: 160 },
     {
-      title: 'Email / HP', width: 180,
-      render: (_, r) => r.email || r.phone || '-',
-      ellipsis: true,
+      title: 'Email / HP', key: 'contact', width: 180, ellipsis: true,
+      render: (_: any, r: User) => r.email || r.phone || '-',
     },
     {
       title: 'Role', dataIndex: 'role', width: 130,
-      render: (v) => <Tag color={roleColors[v] || 'default'}>{roleLabels[v] || v}</Tag>,
+      render: (v: string) => (
+        <Badge variant="outline" className={roleColors[v] || ''}>
+          {roleLabels[v] || v}
+        </Badge>
+      ),
     },
-    { title: 'Area', dataIndex: 'area_id', width: 120, ellipsis: true, render: (v) => v || '-' },
-    { title: 'Status', dataIndex: 'status', width: 100, render: (v) => <StatusBadge status={v || 'active'} /> },
-    { title: 'Terdaftar', dataIndex: 'created_at', width: 120, render: (v) => dayjs(v).format('DD MMM YYYY') },
+    { title: 'Area', dataIndex: 'area_id', width: 120, ellipsis: true, render: (v: string) => v || '-' },
+    { title: 'Status', dataIndex: 'status', width: 100, render: (v: string) => <StatusBadge status={v || 'active'} /> },
+    { title: 'Terdaftar', dataIndex: 'created_at', width: 120, render: (v: string) => dayjs(v).format('DD MMM YYYY') },
     {
-      title: 'Aksi', width: 80,
-      render: (_, record) => (
-        <Dropdown menu={{
-          items: [
-            { key: 'view', icon: <EyeOutlined />, label: 'Detail', onClick: () => setDrawerRecord(record) },
-          ],
-        }}>
-          <Button type="text" icon={<MoreOutlined />} size="small" />
-        </Dropdown>
+      title: 'Aksi', key: 'actions', width: 80,
+      render: (_: any, record: User) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setDrawerRecord(record); }}>
+              <Eye className="h-3.5 w-3.5 mr-2" />
+              Detail
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
@@ -116,7 +155,15 @@ const UserPage: React.FC = () => {
         primaryAction={{ label: 'Tambah Pengguna', onClick: () => setModalOpen(true) }}
       />
 
-      <Tabs activeKey={activeTab} onChange={handleTabChange} items={tabItems} style={{ marginBottom: 16 }} />
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
+        <TabsList className="h-auto flex-wrap">
+          {tabItems.map((item) => (
+            <TabsTrigger key={item.key} value={item.key} className="text-xs">
+              {item.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <SmartTable<User>
         tableState={tableState}
@@ -141,20 +188,27 @@ const UserPage: React.FC = () => {
 
       <SlideOver
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setSelectedRole(undefined); form.resetFields(); }}
+        onClose={() => { setModalOpen(false); setSelectedRole(undefined); form.reset(); }}
         title="Tambah Pengguna"
         footer={
           <>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); setSelectedRole(undefined); }}>Batal</Button>
-            <Button type="primary" onClick={() => form.submit()} loading={submitting}>Simpan</Button>
+            <Button variant="outline" onClick={() => { setModalOpen(false); form.reset(); setSelectedRole(undefined); }}>Batal</Button>
+            <Button onClick={form.handleSubmit(handleCreate)} disabled={submitting}>
+              {submitting ? 'Menyimpan...' : 'Simpan'}
+            </Button>
           </>
         }
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="name" label="Nama" rules={[{ required: true, min: 2 }]}>
-            <Input placeholder="Nama lengkap" />
-          </Form.Item>
-          <Form.Item name="role" label="Peran" rules={[{ required: true }]}>
+        <form onSubmit={form.handleSubmit(handleCreate)} className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nama</Label>
+            <Input id="name" placeholder="Nama lengkap" {...form.register('name')} />
+            {form.formState.errors.name && (
+              <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>
+            )}
+          </div>
+          <div>
+            <Label>Peran</Label>
             <VisualSelector
               options={[
                 { value: 'dlh_admin', label: 'Admin DLH', description: 'Kelola semua operasional' },
@@ -166,28 +220,44 @@ const UserPage: React.FC = () => {
                 { value: 'citizen', label: 'Warga', description: 'Laporkan keluhan' },
               ]}
               value={selectedRole}
-              onChange={(v) => { setSelectedRole(v as string); form.setFieldsValue({ role: v }); }}
+              onChange={(v) => { setSelectedRole(v); form.setValue('role', v); }}
             />
-          </Form.Item>
+            {form.formState.errors.role && (
+              <p className="text-xs text-destructive mt-1">{form.formState.errors.role.message}</p>
+            )}
+          </div>
           {selectedRole && PASSWORD_ROLES.includes(selectedRole) && (
             <>
-              <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-                <Input placeholder="email@example.com" />
-              </Form.Item>
-              <Form.Item name="password" label="Password" rules={[{ required: true, min: 8, message: 'Minimal 8 karakter' }]}>
-                <Input.Password />
-              </Form.Item>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="email@example.com" {...form.register('email')} />
+                {form.formState.errors.email && (
+                  <p className="text-xs text-destructive mt-1">{form.formState.errors.email.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" placeholder="Minimal 8 karakter" {...form.register('password')} />
+                {form.formState.errors.password && (
+                  <p className="text-xs text-destructive mt-1">{form.formState.errors.password.message}</p>
+                )}
+              </div>
             </>
           )}
           {selectedRole && OTP_ROLES.includes(selectedRole) && (
-            <Form.Item name="phone" label="Nomor HP" rules={[{ required: true, pattern: /^08\d{8,12}$/, message: 'Format: 08xxxxxxxxxx' }]}>
-              <Input placeholder="08xxxxxxxxxx" />
-            </Form.Item>
+            <div>
+              <Label htmlFor="phone">Nomor HP</Label>
+              <Input id="phone" placeholder="08xxxxxxxxxx" {...form.register('phone')} />
+              {form.formState.errors.phone && (
+                <p className="text-xs text-destructive mt-1">{form.formState.errors.phone.message}</p>
+              )}
+            </div>
           )}
-          <Form.Item name="areaId" label="Area ID">
-            <Input placeholder="UUID area (opsional)" />
-          </Form.Item>
-        </Form>
+          <div>
+            <Label htmlFor="areaId">Area ID</Label>
+            <Input id="areaId" placeholder="UUID area (opsional)" {...form.register('areaId')} />
+          </div>
+        </form>
       </SlideOver>
 
       <DetailDrawer
@@ -195,7 +265,7 @@ const UserPage: React.FC = () => {
         onClose={() => setDrawerRecord(null)}
         title={`Pengguna: ${drawerRecord?.name || ''}`}
         fields={drawerRecord ? [
-          { label: 'Role', value: <Tag color={roleColors[drawerRecord.role]}>{roleLabels[drawerRecord.role] || drawerRecord.role}</Tag> },
+          { label: 'Role', value: <Badge variant="outline" className={roleColors[drawerRecord.role]}>{roleLabels[drawerRecord.role] || drawerRecord.role}</Badge> },
           { label: 'Email', value: drawerRecord.email || '-' },
           { label: 'HP', value: drawerRecord.phone || '-' },
           { label: 'Status', value: <StatusBadge status={drawerRecord.status || 'active'} /> },

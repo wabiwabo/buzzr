@@ -1,17 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Row, Col, DatePicker, Space, Typography, message } from 'antd';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import { toast } from 'sonner';
 import api from '../services/api';
 import { PageHeader, PageTransition } from '../components/common';
 import { WasteTrendChart, CollectionRateChart, StatusDonutChart } from '../components/charts';
 
-const { RangePicker } = DatePicker;
-const { Text } = Typography;
-
 const AnalyticsPage: React.FC = () => {
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
-    dayjs().subtract(30, 'day'),
-    dayjs(),
+  const [dateRange, setDateRange] = useState<[string, string]>([
+    dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
+    dayjs().format('YYYY-MM-DD'),
   ]);
   const [wasteRaw, setWasteRaw] = useState<Array<{ date: string; category: string; total_kg: number }>>([]);
   const [complaintStats, setComplaintStats] = useState<Array<{ name: string; value: number; color?: string }>>([]);
@@ -52,14 +49,14 @@ const AnalyticsPage: React.FC = () => {
         );
       }
     } catch {
-      message.error('Gagal memuat data analytics');
+      toast.error('Gagal memuat data analytics');
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchData(dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD'));
-  }, [dateRange[0].valueOf(), dateRange[1].valueOf()]);
+    fetchData(dateRange[0], dateRange[1]);
+  }, [dateRange[0], dateRange[1]]);
 
   const wasteData = useMemo(() => {
     const byDate: Record<string, { date: string; organic: number; inorganic: number; b3: number; recyclable: number }> = {};
@@ -81,39 +78,37 @@ const AnalyticsPage: React.FC = () => {
         breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Analytics' }]}
       />
 
-      <Space style={{ marginBottom: 24 }}>
-        <RangePicker
-          value={dateRange}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) {
-              setDateRange([dates[0], dates[1]]);
-            }
-          }}
-          format="DD MMM YYYY"
+      <div className="flex items-center gap-2 mb-6">
+        <input
+          type="date"
+          className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+          value={dateRange[0]}
+          onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
         />
-      </Space>
+        <span className="text-sm text-muted-foreground">—</span>
+        <input
+          type="date"
+          className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+          value={dateRange[1]}
+          onChange={(e) => setDateRange([dateRange[0], e.target.value])}
+        />
+      </div>
 
-      <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>Volume & Koleksi</Text>
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        <Col xs={24} lg={16}>
-          <WasteTrendChart data={wasteData} loading={loading} />
-        </Col>
-        <Col xs={24} lg={8}>
-          <CollectionRateChart data={[]} loading={loading} />
-        </Col>
-      </Row>
+      <h3 className="text-base font-semibold mb-4">Volume & Koleksi</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 mb-8">
+        <WasteTrendChart data={wasteData} loading={loading} />
+        <CollectionRateChart data={[]} loading={loading} />
+      </div>
 
-      <Text strong style={{ fontSize: 16, display: 'block', marginBottom: 16 }}>Keluhan & SLA</Text>
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        <Col xs={24} lg={8}>
-          <StatusDonutChart
-            title="Distribusi Status Keluhan"
-            data={complaintStats}
-            centerLabel="Total"
-            loading={loading}
-          />
-        </Col>
-      </Row>
+      <h3 className="text-base font-semibold mb-4">Keluhan & SLA</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <StatusDonutChart
+          title="Distribusi Status Keluhan"
+          data={complaintStats}
+          centerLabel="Total"
+          loading={loading}
+        />
+      </div>
     </div>
     </PageTransition>
   );

@@ -1,9 +1,8 @@
 import React from 'react';
-import { Card, Typography } from 'antd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CHART_COLORS } from '../../theme/colors';
-
-const { Text } = Typography;
+import { CHART_COLORS } from '../../theme/tokens';
 
 interface StatusSegment {
   name: string;
@@ -31,46 +30,60 @@ export const StatusDonutChart: React.FC<StatusDonutChartProps> = ({
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <Card title={title} size="small" loading={loading}>
-      <div style={{ position: 'relative' }}>
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={80}
-              dataKey="value"
-              animationDuration={600}
-              onClick={(entry) => onSegmentClick?.(entry.name)}
-              cursor="pointer"
-            >
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-[220px] w-full" />
+        ) : (
+          <>
+            <div className="relative">
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    dataKey="value"
+                    animationDuration={600}
+                    onClick={(entry) => onSegmentClick?.(entry.name)}
+                    cursor="pointer"
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={index} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
+                    formatter={(value: number, name: string) => [`${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              {(centerLabel || centerValue !== undefined) && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                  <div className="text-[22px] font-semibold">{centerValue ?? total}</div>
+                  {centerLabel && <span className="text-xs text-muted-foreground">{centerLabel}</span>}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center mt-2">
               {data.map((entry, index) => (
-                <Cell key={index} fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]} />
+                <div key={index} className="flex items-center gap-1.5 text-xs">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ background: entry.color || CHART_COLORS[index % CHART_COLORS.length] }}
+                  />
+                  <span className="text-muted-foreground">{entry.name}: {entry.value}</span>
+                </div>
               ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #E5E7EB' }}
-              formatter={(value: number, name: string) => [`${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`, name]}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        {(centerLabel || centerValue !== undefined) && (
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 600, color: '#1F2937' }}>{centerValue ?? total}</div>
-            {centerLabel && <Text type="secondary" style={{ fontSize: 11 }}>{centerLabel}</Text>}
-          </div>
+            </div>
+          </>
         )}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', justifyContent: 'center', marginTop: 8 }}>
-        {data.map((entry, index) => (
-          <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color || CHART_COLORS[index % CHART_COLORS.length] }} />
-            <Text type="secondary">{entry.name}: {entry.value}</Text>
-          </div>
-        ))}
-      </div>
+      </CardContent>
     </Card>
   );
 };

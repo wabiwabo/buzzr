@@ -1,7 +1,8 @@
 import React from 'react';
-import { Drawer, Descriptions, Timeline, Typography } from 'antd';
-
-const { Text } = Typography;
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
+} from '@/components/ui/sheet';
+import { Separator } from '@/components/ui/separator';
 
 interface DetailField {
   label: string;
@@ -26,6 +27,13 @@ interface DetailDrawerProps {
   width?: number;
 }
 
+const dotColor: Record<string, string> = {
+  blue: 'bg-info',
+  green: 'bg-positive',
+  red: 'bg-negative',
+  orange: 'bg-warning',
+};
+
 export const DetailDrawer: React.FC<DetailDrawerProps> = ({
   open,
   onClose,
@@ -34,54 +42,57 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
   timeline,
   actions,
   extra,
-  width = 480,
 }) => (
-  <Drawer
-    title={title}
-    open={open}
-    onClose={onClose}
-    width={width}
-    className="detail-drawer"
-    footer={actions && (
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        {actions}
-      </div>
-    )}
-  >
-    <div className="detail-drawer-section">
-      <Descriptions column={1} size="small" colon={false}>
-        {fields.map((field, i) => (
-          <Descriptions.Item key={i} label={
-            <Text type="secondary" style={{ fontSize: 13 }}>{field.label}</Text>
-          }>
-            {field.value}
-          </Descriptions.Item>
-        ))}
-      </Descriptions>
-    </div>
+  <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <SheetContent side="right" className="sm:max-w-md flex flex-col">
+      <SheetHeader>
+        <SheetTitle>{title}</SheetTitle>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+        <div className="space-y-3">
+          {fields.map((field, i) => (
+            <div key={i} className="flex justify-between items-start gap-4">
+              <span className="text-sm text-muted-foreground shrink-0">{field.label}</span>
+              <span className="text-sm text-right">{field.value}</span>
+            </div>
+          ))}
+        </div>
 
-    {extra && (
-      <div className="detail-drawer-section">
-        {extra}
-      </div>
-    )}
+        {extra && (
+          <>
+            <Separator />
+            {extra}
+          </>
+        )}
 
-    {timeline && timeline.length > 0 && (
-      <div className="detail-drawer-section">
-        <Text strong style={{ display: 'block', marginBottom: 12 }}>Riwayat</Text>
-        <Timeline
-          items={timeline.map((item) => ({
-            color: item.color || 'blue',
-            children: (
-              <div>
-                <Text style={{ fontSize: 13 }}>{item.label}</Text>
-                <br />
-                <Text type="secondary" style={{ fontSize: 11 }}>{item.time}</Text>
+        {timeline && timeline.length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-sm font-medium mb-3">Riwayat</p>
+              <div className="space-y-3">
+                {timeline.map((item, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${dotColor[item.color || 'blue'] || 'bg-info'}`} />
+                      {i < timeline.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
+                    </div>
+                    <div className="pb-3">
+                      <p className="text-sm">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.time}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ),
-          }))}
-        />
+            </div>
+          </>
+        )}
       </div>
-    )}
-  </Drawer>
+      {actions && (
+        <SheetFooter className="flex-row justify-end gap-2">
+          {actions}
+        </SheetFooter>
+      )}
+    </SheetContent>
+  </Sheet>
 );

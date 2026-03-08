@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { Card, DatePicker, Tabs, Row, Col, Statistic, Button, Space } from 'antd';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import dayjs from 'dayjs';
-import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader, PageTransition } from '../components/common';
 import { SmartTable } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
-import { WASTE_COLORS, CHART_COLORS } from '../theme/colors';
-
-const { RangePicker } = DatePicker;
+import { WASTE_COLORS, CHART_COLORS } from '../theme/tokens';
 
 interface WasteRow {
   date: string;
@@ -83,13 +83,13 @@ const ReportPage: React.FC = () => {
     fetchReport(tab, dateRange[0], dateRange[1]);
   };
 
-  const driverColumns: ColumnsType<DriverPerf> = [
+  const driverColumns = [
     { title: 'Nama', dataIndex: 'name', sorter: true, width: 180 },
     { title: 'Total Trip', dataIndex: 'total_trips', sorter: true, width: 120 },
     { title: 'Checkpoint', dataIndex: 'total_checkpoints', sorter: true, width: 120 },
     {
       title: 'Volume (kg)', dataIndex: 'total_volume_kg', width: 140, sorter: true,
-      render: (v) => Number(v || 0).toLocaleString('id-ID'),
+      render: (v: number) => Number(v || 0).toLocaleString('id-ID'),
     },
   ];
 
@@ -107,102 +107,141 @@ const ReportPage: React.FC = () => {
         description="Pantau performa operasional persampahan"
         breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Laporan' }]}
         extra={
-          <Space>
-            <RangePicker
-              defaultValue={[dayjs(dateRange[0]), dayjs(dateRange[1])]}
-              onChange={(_, dates) => setDateRange(dates as [string, string])}
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+              value={dateRange[0]}
+              onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
             />
-            <Button type="primary" onClick={handleFetch}>Tampilkan</Button>
-          </Space>
+            <span className="text-sm text-muted-foreground">—</span>
+            <input
+              type="date"
+              className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+              value={dateRange[1]}
+              onChange={(e) => setDateRange([dateRange[0], e.target.value])}
+            />
+            <Button size="sm" onClick={handleFetch}>Tampilkan</Button>
+          </div>
         }
       />
 
-      <Tabs activeKey={activeTab} onChange={handleTabChange} items={[
-        { key: 'waste', label: 'Volume Sampah' },
-        { key: 'driver', label: 'Performa Driver' },
-        { key: 'complaint', label: 'Statistik Laporan' },
-      ]} style={{ marginBottom: 16 }} />
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
+        <TabsList>
+          <TabsTrigger value="waste">Volume Sampah</TabsTrigger>
+          <TabsTrigger value="driver">Performa Driver</TabsTrigger>
+          <TabsTrigger value="complaint">Statistik Laporan</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {activeTab === 'waste' && (
-        <Card title="Trend Volume Sampah" className="glass-card" size="small" loading={loading}>
-          {wasteData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <AreaChart data={wasteData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <ReTooltip />
-                <Legend />
-                <Area type="monotone" dataKey="organic" name="Organik" stackId="1" fill={WASTE_COLORS.organic} stroke={WASTE_COLORS.organic} fillOpacity={0.6} />
-                <Area type="monotone" dataKey="inorganic" name="Anorganik" stackId="1" fill={WASTE_COLORS.inorganic} stroke={WASTE_COLORS.inorganic} fillOpacity={0.6} />
-                <Area type="monotone" dataKey="b3" name="B3" stackId="1" fill={WASTE_COLORS.b3} stroke={WASTE_COLORS.b3} fillOpacity={0.6} />
-                <Area type="monotone" dataKey="recyclable" name="Daur Ulang" stackId="1" fill={WASTE_COLORS.recyclable} stroke={WASTE_COLORS.recyclable} fillOpacity={0.6} />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 48, color: 'rgba(0,0,0,0.45)' }}>
-              Klik "Tampilkan" untuk memuat data
-            </div>
-          )}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Trend Volume Sampah</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-[400px] w-full" />
+            ) : wasteData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart data={wasteData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <ReTooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="organic" name="Organik" stackId="1" fill={WASTE_COLORS.organic} stroke={WASTE_COLORS.organic} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="inorganic" name="Anorganik" stackId="1" fill={WASTE_COLORS.inorganic} stroke={WASTE_COLORS.inorganic} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="b3" name="B3" stackId="1" fill={WASTE_COLORS.b3} stroke={WASTE_COLORS.b3} fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="recyclable" name="Daur Ulang" stackId="1" fill={WASTE_COLORS.recyclable} stroke={WASTE_COLORS.recyclable} fillOpacity={0.6} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[400px]">
+                <p className="text-sm text-muted-foreground">Klik "Tampilkan" untuk memuat data</p>
+              </div>
+            )}
+          </CardContent>
         </Card>
       )}
 
       {activeTab === 'driver' && (
-        <Card className="glass-card" size="small">
-          <SmartTable<DriverPerf>
-            tableState={driverTableState}
-            columns={driverColumns}
-            searchPlaceholder="Cari nama driver..."
-            exportFileName="performa-driver"
-            exportColumns={[
-              { title: 'Nama', dataIndex: 'name' },
-              { title: 'Total Trip', dataIndex: 'total_trips' },
-              { title: 'Checkpoint', dataIndex: 'total_checkpoints' },
-              { title: 'Volume (kg)', dataIndex: 'total_volume_kg' },
-            ]}
-            emptyTitle="Tidak ada data"
-            emptyDescription="Klik 'Tampilkan' untuk memuat data performa driver"
-          />
+        <Card>
+          <CardContent className="pt-6">
+            <SmartTable<DriverPerf>
+              tableState={driverTableState}
+              columns={driverColumns}
+              searchPlaceholder="Cari nama driver..."
+              exportFileName="performa-driver"
+              exportColumns={[
+                { title: 'Nama', dataIndex: 'name' },
+                { title: 'Total Trip', dataIndex: 'total_trips' },
+                { title: 'Checkpoint', dataIndex: 'total_checkpoints' },
+                { title: 'Volume (kg)', dataIndex: 'total_volume_kg' },
+              ]}
+              emptyTitle="Tidak ada data"
+              emptyDescription="Klik 'Tampilkan' untuk memuat data performa driver"
+            />
+          </CardContent>
         </Card>
       )}
 
       {activeTab === 'complaint' && complaintStats && (
         <>
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Total Laporan" value={complaintStats.total} /></Card>
-            </Col>
-            <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Selesai" value={complaintStats.resolved} valueStyle={{ color: WASTE_COLORS.organic }} /></Card>
-            </Col>
-            <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Ditolak" value={complaintStats.rejected} valueStyle={{ color: WASTE_COLORS.b3 }} /></Card>
-            </Col>
-            <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Rata-rata Resolusi" value={complaintStats.avg_resolution_hours ?? 0} suffix="jam" precision={1} /></Card>
-            </Col>
-          </Row>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Total Laporan</p>
+                <p className="text-2xl font-semibold mt-1 tabular-nums">{complaintStats.total}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Selesai</p>
+                <p className="text-2xl font-semibold mt-1 tabular-nums text-positive">{complaintStats.resolved}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Ditolak</p>
+                <p className="text-2xl font-semibold mt-1 tabular-nums text-negative">{complaintStats.rejected}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-sm text-muted-foreground">Rata-rata Resolusi</p>
+                <p className="text-2xl font-semibold mt-1 tabular-nums">
+                  {(complaintStats.avg_resolution_hours ?? 0).toFixed(1)} <span className="text-sm font-normal text-muted-foreground">jam</span>
+                </p>
+              </CardContent>
+            </Card>
+          </div>
           {complaintPieData.length > 0 && (
-            <Card title="Distribusi Status" className="glass-card" size="small">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={complaintPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                    {complaintPieData.map((_, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <ReTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Distribusi Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={complaintPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                      {complaintPieData.map((_, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <ReTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
             </Card>
           )}
         </>
       )}
 
       {activeTab === 'complaint' && !complaintStats && !loading && (
-        <div style={{ textAlign: 'center', padding: 48, color: 'rgba(0,0,0,0.45)' }}>
-          Klik "Tampilkan" untuk memuat statistik laporan
+        <div className="flex items-center justify-center h-[300px]">
+          <p className="text-sm text-muted-foreground">Klik "Tampilkan" untuk memuat statistik laporan</p>
         </div>
       )}
     </div>
