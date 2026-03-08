@@ -1,10 +1,10 @@
 import React from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import { Card, Tag, Typography, Space } from 'antd';
 import type { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-const { Text } = Typography;
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export interface MapMarker {
   id: string;
@@ -17,11 +17,11 @@ export interface MapMarker {
 }
 
 const statusColors: Record<string, string> = {
-  active: '#52c41a',
-  full: '#ff4d4f',
-  maintenance: '#faad14',
-  available: '#1677ff',
-  in_use: '#722ed1',
+  active: '#22C55E',
+  full: '#EF4444',
+  maintenance: '#F59E0B',
+  available: '#3B82F6',
+  in_use: '#8B5CF6',
 };
 
 interface MapViewProps {
@@ -41,38 +41,49 @@ export const MapView: React.FC<MapViewProps> = ({
   title = 'Peta',
   loading = false,
 }) => (
-  <Card title={title} className="glass-card" loading={loading} size="small" style={{ height: '100%' }}>
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      style={{ height, borderRadius: 8 }}
-      scrollWheelZoom
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://carto.com">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
-      {markers.map((m) => (
-        <CircleMarker
-          key={m.id}
-          center={[m.lat, m.lng]}
-          radius={m.type === 'tps' ? 10 : 7}
-          pathOptions={{
-            color: statusColors[m.status || 'active'] || '#1677ff',
-            fillColor: statusColors[m.status || 'active'] || '#1677ff',
-            fillOpacity: 0.7,
-            weight: 2,
-          }}
+  <Card className="h-full">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {loading ? (
+        <Skeleton className="w-full" style={{ height }} />
+      ) : (
+        <MapContainer
+          center={center}
+          zoom={zoom}
+          style={{ height, borderRadius: 8 }}
+          scrollWheelZoom
         >
-          <Popup>
-            <Space direction="vertical" size={2}>
-              <Text strong style={{ fontSize: 13 }}>{m.label}</Text>
-              {m.status && <Tag color={statusColors[m.status]}>{m.status}</Tag>}
-              {m.detail && <Text style={{ fontSize: 12 }}>{m.detail}</Text>}
-            </Space>
-          </Popup>
-        </CircleMarker>
-      ))}
-    </MapContainer>
+          <TileLayer
+            attribution='&copy; <a href="https://carto.com">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          />
+          {markers.map((m) => (
+            <CircleMarker
+              key={m.id}
+              center={[m.lat, m.lng]}
+              radius={m.type === 'tps' ? 10 : 7}
+              pathOptions={{
+                color: statusColors[m.status || 'active'] || '#3B82F6',
+                fillColor: statusColors[m.status || 'active'] || '#3B82F6',
+                fillOpacity: 0.7,
+                weight: 2,
+              }}
+            >
+              <Popup>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{m.label}</p>
+                  {m.status && (
+                    <Badge variant="outline" className="text-[10px]">{m.status}</Badge>
+                  )}
+                  {m.detail && <p className="text-xs">{m.detail}</p>}
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+        </MapContainer>
+      )}
+    </CardContent>
   </Card>
 );

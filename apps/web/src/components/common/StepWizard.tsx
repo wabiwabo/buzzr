@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Steps, Button } from 'antd';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { SlideOver } from './SlideOver';
 
 interface WizardStep {
@@ -27,7 +28,6 @@ export const StepWizard: React.FC<StepWizardProps> = ({
   onComplete,
   completeLabel = 'Simpan',
   loading = false,
-  width = 560,
 }) => {
   const [current, setCurrent] = useState(0);
 
@@ -56,32 +56,44 @@ export const StepWizard: React.FC<StepWizardProps> = ({
       open={open}
       onClose={handleClose}
       title={title}
-      width={width}
       footer={
         <>
           {current > 0 && (
-            <Button onClick={handleBack}>Kembali</Button>
+            <Button variant="outline" onClick={handleBack}>Kembali</Button>
           )}
-          <div style={{ flex: 1 }} />
-          <Button onClick={handleClose}>Batal</Button>
+          <div className="flex-1" />
+          <Button variant="outline" onClick={handleClose}>Batal</Button>
           {isLast ? (
-            <Button type="primary" onClick={handleComplete} loading={loading}>
-              {completeLabel}
+            <Button onClick={handleComplete} disabled={loading}>
+              {loading ? 'Menyimpan...' : completeLabel}
             </Button>
           ) : (
-            <Button type="primary" onClick={handleNext}>
-              Lanjut
-            </Button>
+            <Button onClick={handleNext}>Lanjut</Button>
           )}
         </>
       }
     >
-      <Steps
-        current={current}
-        size="small"
-        items={steps.map((s) => ({ title: s.title }))}
-        style={{ marginBottom: 24 }}
-      />
+      {/* Step indicators */}
+      <div className="flex items-center gap-2 mb-6">
+        {steps.map((s, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div className={cn('h-px flex-1', i <= current ? 'bg-primary' : 'bg-border')} />}
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium',
+                i < current ? 'bg-primary text-primary-foreground' :
+                i === current ? 'bg-primary text-primary-foreground' :
+                'bg-muted text-muted-foreground',
+              )}>
+                {i + 1}
+              </div>
+              <span className={cn('text-xs', i === current ? 'text-foreground font-medium' : 'text-muted-foreground')}>
+                {s.title}
+              </span>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
       {steps[current]?.content}
     </SlideOver>
   );

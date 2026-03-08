@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Spin } from 'antd';
+import { Loader2 } from 'lucide-react';
 import DashboardLayout from './layouts/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import { useAuthStore } from './stores/auth.store';
@@ -22,8 +22,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 const PageFallback = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-    <Spin />
+  <div className="flex justify-center items-center min-h-[200px]">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
   </div>
 );
 

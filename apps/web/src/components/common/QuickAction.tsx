@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Popover, Button } from 'antd';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface QuickActionProps {
   title: string;
@@ -26,24 +27,20 @@ export const QuickAction: React.FC<QuickActionProps> = ({
   };
 
   return (
-    <Popover
-      title={title}
-      open={open}
-      onOpenChange={setOpen}
-      trigger="click"
-      content={
-        <div style={{ minWidth: 240 }}>
-          {children}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-            <Button size="small" onClick={() => setOpen(false)}>Batal</Button>
-            <Button size="small" type="primary" onClick={handleConfirm} loading={loading}>
-              {confirmLabel}
-            </Button>
-          </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        {trigger}
+      </PopoverTrigger>
+      <PopoverContent className="min-w-[240px]">
+        <p className="text-sm font-medium mb-3">{title}</p>
+        {children}
+        <div className="flex justify-end gap-2 mt-3">
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Batal</Button>
+          <Button size="sm" onClick={handleConfirm} disabled={loading}>
+            {loading ? 'Memproses...' : confirmLabel}
+          </Button>
         </div>
-      }
-    >
-      {trigger}
+      </PopoverContent>
     </Popover>
   );
 };

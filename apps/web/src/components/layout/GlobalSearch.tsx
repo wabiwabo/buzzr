@@ -1,13 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Input, Dropdown, Typography, Space, Tag } from 'antd';
-import {
-  SearchOutlined, EnvironmentOutlined, CarOutlined,
-  AlertOutlined, TeamOutlined,
-} from '@ant-design/icons';
+import { Search, MapPin, Car, AlertTriangle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import api from '../../services/api';
-
-const { Text } = Typography;
 
 interface SearchResult {
   type: 'tps' | 'fleet' | 'complaint' | 'user';
@@ -17,10 +14,10 @@ interface SearchResult {
 }
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string; path: string }> = {
-  tps: { icon: <EnvironmentOutlined />, color: 'green', path: '/tps' },
-  fleet: { icon: <CarOutlined />, color: 'blue', path: '/fleet' },
-  complaint: { icon: <AlertOutlined />, color: 'orange', path: '/complaints' },
-  user: { icon: <TeamOutlined />, color: 'purple', path: '/users' },
+  tps: { icon: <MapPin className="h-3.5 w-3.5 text-positive" />, color: 'bg-positive/10 text-positive', path: '/tps' },
+  fleet: { icon: <Car className="h-3.5 w-3.5 text-info" />, color: 'bg-info/10 text-info', path: '/fleet' },
+  complaint: { icon: <AlertTriangle className="h-3.5 w-3.5 text-warning" />, color: 'bg-warning/10 text-warning', path: '/complaints' },
+  user: { icon: <Users className="h-3.5 w-3.5 text-purple-500" />, color: 'bg-purple-500/10 text-purple-600', path: '/users' },
 };
 
 export const GlobalSearch: React.FC = () => {
@@ -72,44 +69,45 @@ export const GlobalSearch: React.FC = () => {
     [],
   );
 
-  const menuItems = results.map((r) => {
-    const config = typeConfig[r.type];
-    return {
-      key: r.id,
-      label: (
-        <Space>
-          {config.icon}
-          <div>
-            <Text style={{ fontSize: 13 }}>{r.title}</Text>
-            {r.subtitle && <Text type="secondary" style={{ display: 'block', fontSize: 11 }}>{r.subtitle}</Text>}
-          </div>
-          <Tag color={config.color} style={{ marginLeft: 'auto', fontSize: 10 }}>{r.type.toUpperCase()}</Tag>
-        </Space>
-      ),
-      onClick: () => {
-        navigate(config.path);
-        setOpen(false);
-        setQuery('');
-      },
-    };
-  });
-
   return (
-    <Dropdown
-      menu={{ items: menuItems }}
-      open={open && results.length > 0}
-      onOpenChange={setOpen}
-    >
-      <Input
-        placeholder="Cari TPS, pengguna, laporan..."
-        prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,0.3)' }} />}
-        value={query}
-        onChange={(e) => handleSearch(e.target.value)}
-        allowClear
-        onClear={() => { setQuery(''); setResults([]); setOpen(false); }}
-        style={{ width: 320, borderRadius: 20 }}
-        id="global-search-input"
-      />
-    </Dropdown>
+    <Popover open={open && results.length > 0} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Cari TPS, pengguna, laporan..."
+            value={query}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-9 rounded-full h-8 text-sm"
+            id="global-search-input"
+          />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-1" align="start">
+        {results.map((r) => {
+          const config = typeConfig[r.type];
+          return (
+            <button
+              key={r.id}
+              className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
+              onClick={() => {
+                navigate(config.path);
+                setOpen(false);
+                setQuery('');
+              }}
+            >
+              {config.icon}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{r.title}</p>
+                {r.subtitle && <p className="text-xs text-muted-foreground truncate">{r.subtitle}</p>}
+              </div>
+              <Badge variant="outline" className={`text-[10px] ${config.color}`}>
+                {r.type.toUpperCase()}
+              </Badge>
+            </button>
+          );
+        })}
+      </PopoverContent>
+    </Popover>
   );
 };
