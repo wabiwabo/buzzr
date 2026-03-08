@@ -4,7 +4,7 @@ import { DollarOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-d
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { PageHeader, StatCard, StatusBadge } from '../components/common';
+import { PageHeader, StatCard, StatusBadge, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -91,6 +91,7 @@ const PaymentPage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Pembayaran"
@@ -164,6 +165,7 @@ const PaymentPage: React.FC = () => {
         ] : []}
       />
     </div>
+    </PageTransition>
   );
 };
 

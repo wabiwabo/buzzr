@@ -10,3 +10,4 @@ export { ProgressRing } from './ProgressRing';
 export { QuickAction } from './QuickAction';
 export { StepWizard } from './StepWizard';
 export { VisualSelector } from './VisualSelector';
+export { PageTransition } from './PageTransition';

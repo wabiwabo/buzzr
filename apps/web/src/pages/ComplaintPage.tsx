@@ -4,7 +4,7 @@ import { EyeOutlined, MoreOutlined, UserAddOutlined, CheckOutlined, CloseOutline
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { PageHeader, StatusBadge, InfoTooltip, QuickAction } from '../components/common';
+import { PageHeader, StatusBadge, InfoTooltip, QuickAction, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -157,6 +157,7 @@ const ComplaintPage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Laporan Warga"
@@ -209,6 +210,7 @@ const ComplaintPage: React.FC = () => {
         )}
       />
     </div>
+    </PageTransition>
   );
 };
 

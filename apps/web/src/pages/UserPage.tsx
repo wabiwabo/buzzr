@@ -5,7 +5,7 @@ import { Dropdown } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { PageHeader, StatusBadge, SlideOver, VisualSelector } from '../components/common';
+import { PageHeader, StatusBadge, SlideOver, VisualSelector, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -107,6 +107,7 @@ const UserPage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Manajemen Pengguna"
@@ -203,6 +204,7 @@ const UserPage: React.FC = () => {
         ] : []}
       />
     </div>
+    </PageTransition>
   );
 };
 

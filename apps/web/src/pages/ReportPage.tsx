@@ -7,7 +7,7 @@ import {
 import dayjs from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader } from '../components/common';
+import { PageHeader, PageTransition } from '../components/common';
 import { SmartTable } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -99,6 +99,7 @@ const ReportPage: React.FC = () => {
   ].filter((d) => d.value > 0) : [];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Laporan & Analitik"
@@ -204,6 +205,7 @@ const ReportPage: React.FC = () => {
         </div>
       )}
     </div>
+    </PageTransition>
   );
 };
 

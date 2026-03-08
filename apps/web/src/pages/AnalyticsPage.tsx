@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Row, Col, DatePicker, Space, Typography, message } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import api from '../services/api';
-import { PageHeader } from '../components/common';
+import { PageHeader, PageTransition } from '../components/common';
 import { WasteTrendChart, CollectionRateChart, StatusDonutChart } from '../components/charts';
 
 const { RangePicker } = DatePicker;
@@ -71,6 +71,7 @@ const AnalyticsPage: React.FC = () => {
   }, [wasteRaw]);
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Analytics Hub"
@@ -112,6 +113,7 @@ const AnalyticsPage: React.FC = () => {
         </Col>
       </Row>
     </div>
+    </PageTransition>
   );
 };
 

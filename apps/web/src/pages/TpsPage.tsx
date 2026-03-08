@@ -3,7 +3,7 @@ import { Form, Input, InputNumber, Select, Progress, Button, Space, Dropdown, me
 import { EditOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge, InfoTooltip, SlideOver } from '../components/common';
+import { PageHeader, StatusBadge, InfoTooltip, SlideOver, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -117,6 +117,7 @@ const TpsPage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Manajemen TPS"
@@ -216,6 +217,7 @@ const TpsPage: React.FC = () => {
         ] : []}
       />
     </div>
+    </PageTransition>
   );
 };
 

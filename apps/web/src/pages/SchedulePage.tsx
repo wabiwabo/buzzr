@@ -3,7 +3,7 @@ import { Form, Input, Select, Button, Space, Dropdown, Tag, Checkbox, InputNumbe
 import { EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge, StepWizard } from '../components/common';
+import { PageHeader, StatusBadge, StepWizard, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -99,6 +99,7 @@ const SchedulePage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Manajemen Jadwal"
@@ -190,6 +191,7 @@ const SchedulePage: React.FC = () => {
         ] : []}
       />
     </div>
+    </PageTransition>
   );
 };
 

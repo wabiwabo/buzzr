@@ -3,7 +3,7 @@ import { Form, Input, InputNumber, Button, Space, Dropdown, message, Tag } from 
 import { EyeOutlined, MoreOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge, SlideOver, VisualSelector } from '../components/common';
+import { PageHeader, StatusBadge, SlideOver, VisualSelector, PageTransition } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -125,6 +125,7 @@ const FleetPage: React.FC = () => {
   ];
 
   return (
+    <PageTransition>
     <div>
       <PageHeader
         title="Manajemen Armada"
@@ -219,6 +220,7 @@ const FleetPage: React.FC = () => {
         )}
       />
     </div>
+    </PageTransition>
   );
 };
 
