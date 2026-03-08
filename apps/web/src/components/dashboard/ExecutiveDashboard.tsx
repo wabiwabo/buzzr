@@ -25,10 +25,38 @@ interface DashboardData {
   };
 }
 
+interface WasteDataRow {
+  date: string;
+  organic: number;
+  inorganic: number;
+  b3: number;
+  recyclable: number;
+}
+
+interface AttentionItem {
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  detail?: string;
+  path: string;
+}
+
+interface TpsRecord {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface ComplaintRecord {
+  id: string;
+  status: string;
+  category: string;
+  created_at: string;
+}
+
 export const ExecutiveDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [wasteData, setWasteData] = useState<any[]>([]);
-  const [attentionItems, setAttentionItems] = useState<any[]>([]);
+  const [wasteData, setWasteData] = useState<WasteDataRow[]>([]);
+  const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +73,7 @@ export const ExecutiveDashboard: React.FC = () => {
       if (dashRes.status === 'fulfilled') setData(dashRes.value.data);
       if (wasteRes.status === 'fulfilled') setWasteData(Array.isArray(wasteRes.value.data) ? wasteRes.value.data : []);
 
-      const items: any[] = [];
+      const items: AttentionItem[] = [];
       if (overdueRes.status === 'fulfilled') {
         const overdue = Array.isArray(overdueRes.value.data) ? overdueRes.value.data : [];
         if (overdue.length > 0) {
@@ -53,17 +81,17 @@ export const ExecutiveDashboard: React.FC = () => {
         }
       }
       if (tpsRes.status === 'fulfilled') {
-        const tps = Array.isArray(tpsRes.value.data) ? tpsRes.value.data : [];
-        tps.filter((t: any) => t.status === 'full').forEach((t: any) => {
+        const tps: TpsRecord[] = Array.isArray(tpsRes.value.data) ? tpsRes.value.data : [];
+        tps.filter((t) => t.status === 'full').forEach((t) => {
           items.push({ severity: 'critical', message: `TPS ${t.name} penuh`, path: '/tps' });
         });
       }
       if (complaintRes.status === 'fulfilled') {
-        const complaints = Array.isArray(complaintRes.value.data) ? complaintRes.value.data : [];
+        const complaints: ComplaintRecord[] = Array.isArray(complaintRes.value.data) ? complaintRes.value.data : [];
         complaints
-          .filter((c: any) => c.status === 'submitted')
+          .filter((c) => c.status === 'submitted')
           .slice(0, 5)
-          .forEach((c: any) => {
+          .forEach((c) => {
             const hoursOld = dayjs().diff(dayjs(c.created_at), 'hour');
             items.push({
               severity: hoursOld > 48 ? 'critical' : hoursOld > 24 ? 'warning' : 'info',

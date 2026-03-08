@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ChecklistItem } from '../components/onboarding/ProgressChecklist';
 
 const STORAGE_KEY = 'buzzr_checklist';
@@ -39,26 +39,26 @@ export function useChecklist(): UseChecklistReturn {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed]));
   }, [completed]);
 
-  const items: ChecklistItem[] = DEFAULT_ITEMS.map((item) => ({
-    ...item,
-    completed: completed.has(item.key),
-  }));
+  const items: ChecklistItem[] = useMemo(
+    () => DEFAULT_ITEMS.map((item) => ({ ...item, completed: completed.has(item.key) })),
+    [completed],
+  );
 
-  const markComplete = (key: string) => {
+  const markComplete = useCallback((key: string) => {
     setCompleted((prev) => new Set([...prev, key]));
-  };
+  }, []);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     setDismissed(true);
     localStorage.setItem(DISMISSED_KEY, 'true');
-  };
+  }, []);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setCompleted(new Set());
     setDismissed(false);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(DISMISSED_KEY);
-  };
+  }, []);
 
   return { items, dismissed, markComplete, dismiss, reset };
 }

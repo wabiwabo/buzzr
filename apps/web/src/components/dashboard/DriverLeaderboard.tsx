@@ -6,13 +6,19 @@ import api from '../../services/api';
 
 const { Text } = Typography;
 
+interface DriverRecord {
+  id: string;
+  name: string;
+  total_volume_kg: number;
+}
+
 interface DriverLeaderboardProps {
   loading?: boolean;
 }
 
 export const DriverLeaderboard: React.FC<DriverLeaderboardProps> = ({ loading: parentLoading }) => {
   const navigate = useNavigate();
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<DriverRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -13,16 +13,16 @@ const AnalyticsPage: React.FC = () => {
     dayjs().subtract(30, 'day'),
     dayjs(),
   ]);
-  const [wasteRaw, setWasteRaw] = useState<any[]>([]);
-  const [complaintStats, setComplaintStats] = useState<any[]>([]);
+  const [wasteRaw, setWasteRaw] = useState<Array<{ date: string; category: string; total_kg: number }>>([]);
+  const [complaintStats, setComplaintStats] = useState<Array<{ name: string; value: number; color?: string }>>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = async (from: string, to: string) => {
     setLoading(true);
     try {
       const [wasteRes, complaintRes] = await Promise.allSettled([
-        api.get('/reports/waste-volume'),
-        api.get('/complaints'),
+        api.get('/reports/waste-volume', { params: { from, to } }),
+        api.get('/complaints', { params: { from, to } }),
       ]);
 
       if (wasteRes.status === 'fulfilled') {
@@ -30,9 +30,9 @@ const AnalyticsPage: React.FC = () => {
       }
 
       if (complaintRes.status === 'fulfilled') {
-        const complaints = Array.isArray(complaintRes.value.data) ? complaintRes.value.data : [];
+        const complaints: Array<{ status: string }> = Array.isArray(complaintRes.value.data) ? complaintRes.value.data : [];
         const statusCounts: Record<string, number> = {};
-        complaints.forEach((c: any) => {
+        complaints.forEach((c) => {
           statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
         });
         const statusLabels: Record<string, string> = {
@@ -57,17 +57,19 @@ const AnalyticsPage: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData(dateRange[0].format('YYYY-MM-DD'), dateRange[1].format('YYYY-MM-DD'));
+  }, [dateRange[0].valueOf(), dateRange[1].valueOf()]);
 
   const wasteData = useMemo(() => {
-    const byDate: Record<string, any> = {};
-    wasteRaw.forEach((r: any) => {
+    const byDate: Record<string, { date: string; organic: number; inorganic: number; b3: number; recyclable: number }> = {};
+    wasteRaw.forEach((r) => {
       const date = r.date?.slice(0, 10) || 'unknown';
       if (!byDate[date]) byDate[date] = { date, organic: 0, inorganic: 0, b3: 0, recyclable: 0 };
-      const key = ['organic', 'inorganic', 'b3', 'recyclable'].includes(r.category) ? r.category : 'recyclable';
+      const key = (['organic', 'inorganic', 'b3', 'recyclable'] as const).find((k) => k === r.category) || 'recyclable';
       byDate[date][key] += Number(r.total_kg || 0);
     });
-    return Object.values(byDate).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   }, [wasteRaw]);
 
   return (

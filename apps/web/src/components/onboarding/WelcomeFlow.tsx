@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Typography, Space, Switch } from 'antd';
-import { RocketOutlined, BellOutlined, DashboardOutlined } from '@ant-design/icons';
+import { Button, Typography, Space } from 'antd';
+import { RocketOutlined, BarChartOutlined, DashboardOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const { Title, Paragraph, Text } = Typography;
@@ -27,27 +27,9 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ userName, onComplete }
       description: 'Buzzr membantu Anda mengelola operasional persampahan dengan lebih efisien.',
     },
     {
-      icon: <BellOutlined style={{ fontSize: 48, color: '#2563EB' }} />,
-      title: 'Preferensi Notifikasi',
-      description: 'Pilih jenis notifikasi yang ingin Anda terima.',
-      content: (
-        <div style={{ maxWidth: 320, margin: '0 auto' }}>
-          {[
-            { label: 'TPS Penuh', desc: 'Notifikasi saat TPS mendekati kapasitas' },
-            { label: 'Keluhan Baru', desc: 'Notifikasi saat ada laporan warga' },
-            { label: 'SLA Mendekati Batas', desc: 'Peringatan batas waktu penyelesaian' },
-          ].map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-              <div>
-                <Text strong style={{ fontSize: 13 }}>{item.label}</Text>
-                <br />
-                <Text type="secondary" style={{ fontSize: 11 }}>{item.desc}</Text>
-              </div>
-              <Switch defaultChecked size="small" />
-            </div>
-          ))}
-        </div>
-      ),
+      icon: <BarChartOutlined style={{ fontSize: 48, color: '#2563EB' }} />,
+      title: 'Fitur Utama',
+      description: 'Pantau TPS, kelola pengangkutan, lacak keluhan warga, dan analisis performa — semua dalam satu dashboard.',
     },
     {
       icon: <DashboardOutlined style={{ fontSize: 48, color: '#2563EB' }} />,

@@ -1,32 +1,33 @@
 import React from 'react';
 import { Tag } from 'antd';
+import { STATUS_COLORS as SEMANTIC } from '../../theme/colors';
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLOR_MAP: Record<string, string> = {
   // TPS
-  active: 'green',
-  full: 'red',
-  maintenance: 'orange',
+  active: SEMANTIC.positive,
+  full: SEMANTIC.negative,
+  maintenance: SEMANTIC.warning,
   // Complaint
-  submitted: 'blue',
-  verified: 'cyan',
-  assigned: 'orange',
-  in_progress: 'gold',
-  resolved: 'green',
-  rejected: 'red',
+  submitted: SEMANTIC.info,
+  verified: '#06B6D4',
+  assigned: SEMANTIC.warning,
+  in_progress: '#EAB308',
+  resolved: SEMANTIC.positive,
+  rejected: SEMANTIC.negative,
   // Payment
-  pending: 'orange',
-  paid: 'green',
-  failed: 'red',
-  expired: 'default',
-  refunded: 'purple',
+  pending: SEMANTIC.warning,
+  paid: SEMANTIC.positive,
+  failed: SEMANTIC.negative,
+  expired: SEMANTIC.neutral,
+  refunded: '#8B5CF6',
   // Vehicle
-  available: 'green',
-  in_use: 'blue',
+  available: SEMANTIC.positive,
+  in_use: SEMANTIC.info,
   // Schedule
-  completed: 'green',
-  cancelled: 'red',
+  completed: SEMANTIC.positive,
+  cancelled: SEMANTIC.negative,
   // User
-  inactive: 'red',
+  inactive: SEMANTIC.negative,
 };
 
 interface StatusBadgeProps {
@@ -36,7 +37,7 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, dot = false }) => {
-  const color = STATUS_COLORS[status] || 'default';
+  const color = STATUS_COLOR_MAP[status] || SEMANTIC.neutral;
   const displayLabel = label || status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   if (dot) {
@@ -48,8 +49,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, dot = f
             width: 8,
             height: 8,
             borderRadius: '50%',
-            backgroundColor: color === 'default' ? '#d9d9d9' : undefined,
-            background: color !== 'default' ? `var(--ant-color-${color === 'green' ? 'success' : color === 'red' ? 'error' : color === 'orange' ? 'warning' : 'primary'})` : undefined,
+            backgroundColor: color,
           }}
         />
         <span>{displayLabel}</span>

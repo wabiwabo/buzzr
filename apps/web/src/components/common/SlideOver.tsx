@@ -50,7 +50,6 @@ export const SlideOver: React.FC<SlideOverProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={onClose}
-            style={{ opacity: 1 }}
           />
           <motion.div
             className="slide-over-panel"
@@ -58,7 +57,7 @@ export const SlideOver: React.FC<SlideOverProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            style={{ width, transform: 'none' }}
+            style={{ width }}
           >
             <div className="slide-over-header">
               <Title level={5} style={{ margin: 0 }}>{title}</Title>

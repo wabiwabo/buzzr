@@ -45,8 +45,7 @@ export const AttentionQueue: React.FC<AttentionQueueProps> = ({ items, loading }
               borderBottom: '1px solid #F3F4F6',
               transition: 'background var(--duration-instant) ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#F9FAFB')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            className="attention-queue-item"
           >
             <div style={{
               width: 8, height: 8, borderRadius: '50%',

@@ -28,7 +28,7 @@ export const getMenuSections = (isSuperAdmin: boolean): MenuSection[] => [
     label: null,
     items: [
       { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
-      { key: '/live', icon: <RadarChartOutlined />, label: 'Live Operations' },
+      { key: '/live', icon: <RadarChartOutlined />, label: 'Live Operations', permission: 'report:view' },
       { key: '/analytics', icon: <BarChartOutlined />, label: 'Analytics', permission: 'analytics:view' },
     ],
   },
@@ -36,7 +36,7 @@ export const getMenuSections = (isSuperAdmin: boolean): MenuSection[] => [
     key: 'operations',
     label: 'OPERASIONAL',
     items: [
-      { key: '/tps', icon: <EnvironmentOutlined />, label: 'TPS' },
+      { key: '/tps', icon: <EnvironmentOutlined />, label: 'TPS', permission: 'tps:view' },
       {
         key: '/collection',
         icon: <ScheduleOutlined />,
@@ -46,7 +46,7 @@ export const getMenuSections = (isSuperAdmin: boolean): MenuSection[] => [
           { key: '/transfers', icon: <AppstoreOutlined />, label: 'Transfer' },
         ],
       },
-      { key: '/fleet', icon: <CarOutlined />, label: 'Armada & Driver' },
+      { key: '/fleet', icon: <CarOutlined />, label: 'Armada & Driver', permission: 'fleet:create' },
       { key: '/complaints', icon: <AlertOutlined />, label: 'Laporan Warga', badge: 'pendingComplaints' },
     ],
   },

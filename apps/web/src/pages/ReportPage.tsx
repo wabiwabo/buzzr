@@ -10,6 +10,7 @@ import api from '../services/api';
 import { PageHeader, PageTransition } from '../components/common';
 import { SmartTable } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
+import { WASTE_COLORS, CHART_COLORS } from '../theme/colors';
 
 const { RangePicker } = DatePicker;
 
@@ -37,7 +38,7 @@ interface ComplaintStats {
 const categoryLabels: Record<string, string> = {
   organic: 'Organik', inorganic: 'Anorganik', b3: 'B3', recyclable: 'Daur Ulang',
 };
-const COLORS = ['#52c41a', '#1677ff', '#ff4d4f', '#faad14'];
+const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[3], CHART_COLORS[2]];
 
 const ReportPage: React.FC = () => {
   const driverTableState = useTableState<DriverPerf>({ searchFields: ['name'] });
@@ -132,10 +133,10 @@ const ReportPage: React.FC = () => {
                 <YAxis tick={{ fontSize: 11 }} />
                 <ReTooltip />
                 <Legend />
-                <Area type="monotone" dataKey="organic" name="Organik" stackId="1" fill="#52c41a" stroke="#52c41a" fillOpacity={0.6} />
-                <Area type="monotone" dataKey="inorganic" name="Anorganik" stackId="1" fill="#1677ff" stroke="#1677ff" fillOpacity={0.6} />
-                <Area type="monotone" dataKey="b3" name="B3" stackId="1" fill="#ff4d4f" stroke="#ff4d4f" fillOpacity={0.6} />
-                <Area type="monotone" dataKey="recyclable" name="Daur Ulang" stackId="1" fill="#faad14" stroke="#faad14" fillOpacity={0.6} />
+                <Area type="monotone" dataKey="organic" name="Organik" stackId="1" fill={WASTE_COLORS.organic} stroke={WASTE_COLORS.organic} fillOpacity={0.6} />
+                <Area type="monotone" dataKey="inorganic" name="Anorganik" stackId="1" fill={WASTE_COLORS.inorganic} stroke={WASTE_COLORS.inorganic} fillOpacity={0.6} />
+                <Area type="monotone" dataKey="b3" name="B3" stackId="1" fill={WASTE_COLORS.b3} stroke={WASTE_COLORS.b3} fillOpacity={0.6} />
+                <Area type="monotone" dataKey="recyclable" name="Daur Ulang" stackId="1" fill={WASTE_COLORS.recyclable} stroke={WASTE_COLORS.recyclable} fillOpacity={0.6} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -172,10 +173,10 @@ const ReportPage: React.FC = () => {
               <Card className="glass-card"><Statistic title="Total Laporan" value={complaintStats.total} /></Card>
             </Col>
             <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Selesai" value={complaintStats.resolved} valueStyle={{ color: '#52c41a' }} /></Card>
+              <Card className="glass-card"><Statistic title="Selesai" value={complaintStats.resolved} valueStyle={{ color: WASTE_COLORS.organic }} /></Card>
             </Col>
             <Col xs={24} sm={6}>
-              <Card className="glass-card"><Statistic title="Ditolak" value={complaintStats.rejected} valueStyle={{ color: '#ff4d4f' }} /></Card>
+              <Card className="glass-card"><Statistic title="Ditolak" value={complaintStats.rejected} valueStyle={{ color: WASTE_COLORS.b3 }} /></Card>
             </Col>
             <Col xs={24} sm={6}>
               <Card className="glass-card"><Statistic title="Rata-rata Resolusi" value={complaintStats.avg_resolution_hours ?? 0} suffix="jam" precision={1} /></Card>

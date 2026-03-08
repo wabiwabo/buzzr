@@ -17,13 +17,17 @@ interface VisualSelectorProps {
 }
 
 export const VisualSelector: React.FC<VisualSelectorProps> = ({ options, value, onChange }) => (
-  <div style={{ display: 'flex', gap: 12 }}>
+  <div role="radiogroup" style={{ display: 'flex', gap: 12 }}>
     {options.map((opt) => {
       const selected = value === opt.value;
       return (
         <div
           key={opt.value}
+          role="radio"
+          aria-checked={selected}
+          tabIndex={0}
           onClick={() => onChange?.(opt.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange?.(opt.value); } }}
           style={{
             flex: 1,
             padding: '12px 16px',

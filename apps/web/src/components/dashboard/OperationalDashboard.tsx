@@ -7,13 +7,31 @@ import { StatCard } from '../common';
 
 const { Title, Text } = Typography;
 
+interface ScheduleRecord {
+  id: string;
+  route_name: string;
+  schedule_type: string;
+  scheduled_date: string | null;
+  start_time: string;
+  status: string;
+  stop_count?: number;
+}
+
+interface ComplaintRecord {
+  id: string;
+  category: string;
+  description: string;
+  status: string;
+  created_at: string;
+}
+
 interface OperationalDashboardProps {
   role: string;
 }
 
 export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({ role }) => {
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [complaints, setComplaints] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
+  const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,7 +47,7 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({ role
       if (results[1].status === 'fulfilled') {
         setComplaints(
           (Array.isArray(results[1].value.data) ? results[1].value.data : [])
-            .filter((c: any) => ['submitted', 'assigned', 'in_progress'].includes(c.status))
+            .filter((c: ComplaintRecord) => ['submitted', 'assigned', 'in_progress'].includes(c.status))
             .slice(0, 5)
         );
       }

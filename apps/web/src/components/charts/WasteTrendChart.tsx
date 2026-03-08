@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import dayjs from 'dayjs';
 import { Card, Segmented, Typography } from 'antd';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -35,8 +36,27 @@ export const WasteTrendChart: React.FC<WasteTrendChartProps> = ({
 }) => {
   const [period, setPeriod] = useState<Period>('daily');
 
+  const aggregatedData = useMemo(() => {
+    if (period === 'daily') return data;
+
+    const grouped: Record<string, { date: string; organic: number; inorganic: number; b3: number; recyclable: number }> = {};
+    data.forEach((row) => {
+      const d = dayjs(row.date);
+      const key = period === 'weekly'
+        ? d.startOf('week').format('YYYY-MM-DD')
+        : d.format('YYYY-MM');
+      if (!grouped[key]) grouped[key] = { date: key, organic: 0, inorganic: 0, b3: 0, recyclable: 0 };
+      grouped[key].organic += row.organic;
+      grouped[key].inorganic += row.inorganic;
+      grouped[key].b3 += row.b3;
+      grouped[key].recyclable += row.recyclable;
+    });
+    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
+  }, [data, period]);
+
   const formatDate = (value: string) => {
     if (!value) return '';
+    if (period === 'monthly') return dayjs(value).format('MMM YY');
     const d = new Date(value);
     return `${d.getDate()}/${d.getMonth() + 1}`;
   };
@@ -57,9 +77,9 @@ export const WasteTrendChart: React.FC<WasteTrendChartProps> = ({
         />
       }
     >
-      {data.length > 0 ? (
+      {aggregatedData.length > 0 ? (
         <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={data} onClick={(e) => e?.activeLabel && onBarClick?.(String(e.activeLabel))}>
+          <AreaChart data={aggregatedData} onClick={(e) => e?.activeLabel && onBarClick?.(String(e.activeLabel))}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
             <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={formatDate} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v} kg`} />

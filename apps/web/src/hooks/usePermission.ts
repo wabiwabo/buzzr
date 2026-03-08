@@ -1,9 +1,10 @@
+import { useMemo, useCallback } from 'react';
 import { useAuthStore } from '../stores/auth.store';
 
 const PERMISSIONS: Record<string, string[]> = {
   super_admin: [
     'tenant:manage', 'user:create', 'user:edit', 'user:delete',
-    'tps:create', 'tps:edit', 'tps:delete', 'tps:record_waste',
+    'tps:create', 'tps:edit', 'tps:delete', 'tps:view', 'tps:record_waste',
     'complaint:assign', 'complaint:resolve', 'complaint:reject',
     'schedule:create', 'schedule:edit', 'schedule:delete',
     'fleet:create', 'fleet:edit', 'fleet:assign_driver',
@@ -14,7 +15,7 @@ const PERMISSIONS: Record<string, string[]> = {
   ],
   dlh_admin: [
     'user:create', 'user:edit',
-    'tps:create', 'tps:edit', 'tps:record_waste',
+    'tps:create', 'tps:edit', 'tps:view', 'tps:record_waste',
     'complaint:assign', 'complaint:resolve', 'complaint:reject',
     'schedule:create', 'schedule:edit',
     'fleet:create', 'fleet:edit', 'fleet:assign_driver',
@@ -45,12 +46,17 @@ const PERMISSIONS: Record<string, string[]> = {
 export function usePermission() {
   const { user } = useAuthStore();
   const role = user?.role || '';
-  const perms = PERMISSIONS[role] || [];
+  const perms = useMemo(() => PERMISSIONS[role] || [], [role]);
 
-  const can = (permission: string): boolean => perms.includes(permission);
+  const can = useCallback(
+    (permission: string): boolean => perms.includes(permission),
+    [perms],
+  );
 
-  const canAny = (...permissions: string[]): boolean =>
-    permissions.some((p) => perms.includes(p));
+  const canAny = useCallback(
+    (...permissions: string[]): boolean => permissions.some((p) => perms.includes(p)),
+    [perms],
+  );
 
   const isExecutive = ['dlh_admin', 'super_admin'].includes(role);
   const isSuperAdmin = role === 'super_admin';

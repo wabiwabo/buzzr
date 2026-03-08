@@ -143,12 +143,6 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
   z-index: 200;
-  opacity: 0;
-  transition: opacity var(--duration-normal) var(--ease-out);
-}
-
-.slide-over-backdrop.open {
-  opacity: 1;
 }
 
 .slide-over-panel {
@@ -161,14 +155,8 @@
   background: #fff;
   z-index: 201;
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
-  transform: translateX(100%);
-  transition: transform var(--duration-normal) var(--ease-out);
   display: flex;
   flex-direction: column;
-}
-
-.slide-over-panel.open {
-  transform: translateX(0);
 }
 
 .slide-over-header {
@@ -191,6 +179,11 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* Attention queue hover */
+.attention-queue-item:hover {
+  background: #F9FAFB;
 }
 
 /* Page transitions */
