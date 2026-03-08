@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 interface UseTriageSelectionOptions<T> {
   items: T[];
@@ -9,8 +9,15 @@ export function useTriageSelection<T>({ items, getId }: UseTriageSelectionOption
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
-  const selectedItem = items.find((item) => getId(item) === selectedId) ?? null;
-  const checkedItems = items.filter((item) => checkedIds.has(getId(item)));
+  const selectedItem = useMemo(
+    () => items.find((item) => getId(item) === selectedId) ?? null,
+    [items, selectedId, getId],
+  );
+
+  const checkedItems = useMemo(
+    () => items.filter((item) => checkedIds.has(getId(item))),
+    [items, checkedIds, getId],
+  );
 
   const select = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -18,6 +25,10 @@ export function useTriageSelection<T>({ items, getId }: UseTriageSelectionOption
 
   const selectNext = useCallback(() => {
     if (items.length === 0) return;
+    if (selectedId === null) {
+      setSelectedId(getId(items[0]));
+      return;
+    }
     const idx = items.findIndex((item) => getId(item) === selectedId);
     const nextIdx = idx < items.length - 1 ? idx + 1 : idx;
     setSelectedId(getId(items[nextIdx]));
@@ -25,6 +36,10 @@ export function useTriageSelection<T>({ items, getId }: UseTriageSelectionOption
 
   const selectPrev = useCallback(() => {
     if (items.length === 0) return;
+    if (selectedId === null) {
+      setSelectedId(getId(items[0]));
+      return;
+    }
     const idx = items.findIndex((item) => getId(item) === selectedId);
     const prevIdx = idx > 0 ? idx - 1 : 0;
     setSelectedId(getId(items[prevIdx]));

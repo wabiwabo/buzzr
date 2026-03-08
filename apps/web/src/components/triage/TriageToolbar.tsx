@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, RotateCw, Keyboard } from 'lucide-react';
+import { Search, SlidersHorizontal, RotateCw, Keyboard, AlignJustify } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +88,7 @@ export function TriageToolbar({
           onClick={() => onDensityChange(density === 'compact' ? 'comfortable' : 'compact')}
           title={density === 'compact' ? 'Mode nyaman' : 'Mode padat'}
         >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <AlignJustify className="h-3.5 w-3.5" />
         </Button>
 
         {/* Refresh */}

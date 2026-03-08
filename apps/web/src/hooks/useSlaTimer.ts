@@ -24,12 +24,12 @@ function getPhase(remaining: number): SlaPhase {
   return 'normal';
 }
 
-export function useSlaTimer(deadline: string | Date | null, slaHours = 72): SlaState {
+export function useSlaTimer(createdAt: string | Date | null, slaHours = 72): SlaState {
   const calcRemaining = useCallback(() => {
-    if (!deadline) return slaHours * 3_600_000;
-    const deadlineMs = new Date(deadline).getTime() + slaHours * 3_600_000;
+    if (!createdAt) return slaHours * 3_600_000;
+    const deadlineMs = new Date(createdAt).getTime() + slaHours * 3_600_000;
     return deadlineMs - Date.now();
-  }, [deadline, slaHours]);
+  }, [createdAt, slaHours]);
 
   const [remaining, setRemaining] = useState(calcRemaining);
 
