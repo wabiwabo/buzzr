@@ -7,3 +7,6 @@ export { ConfirmAction } from './ConfirmAction';
 export { SlideOver } from './SlideOver';
 export { Sparkline } from './Sparkline';
 export { ProgressRing } from './ProgressRing';
+export { QuickAction } from './QuickAction';
+export { StepWizard } from './StepWizard';
+export { VisualSelector } from './VisualSelector';
