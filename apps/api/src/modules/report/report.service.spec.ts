@@ -59,4 +59,40 @@ describe('ReportService', () => {
       expect(result).toHaveProperty('resolved');
     });
   });
+
+  describe('getActivityFeed', () => {
+    it('should return recent activities', async () => {
+      const mockActivities = [
+        { type: 'complaint', message: 'Laporan baru: organic', timestamp: '2026-03-08T10:23:00Z' },
+        { type: 'schedule', message: 'Jadwal completed: Rute Utara', timestamp: '2026-03-08T10:15:00Z' },
+      ];
+
+      dataSource.query.mockResolvedValueOnce(mockActivities);
+      const result = await service.getActivityFeed('dlh_demo', 20);
+      expect(result).toEqual(mockActivities);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('UNION ALL'),
+        expect.any(Array),
+      );
+    });
+  });
+
+  describe('getDashboardWithComparison', () => {
+    it('should return current and previous period data with trends', async () => {
+      // Mock getDashboardSummary (4 queries)
+      dataSource.query
+        .mockResolvedValueOnce([{ total_waste_today_kg: 1250 }])
+        .mockResolvedValueOnce([{ active_drivers: 12 }])
+        .mockResolvedValueOnce([{ pending_complaints: 5 }])
+        .mockResolvedValueOnce([{ collection_rate: 87 }])
+        // Mock previous period query
+        .mockResolvedValueOnce([{ totalWasteKg: 1100, activeDrivers: 10, pendingComplaints: 7 }]);
+
+      const result = await service.getDashboardWithComparison('dlh_demo');
+      expect(result.current).toBeDefined();
+      expect(result.previous).toBeDefined();
+      expect(result.trends).toBeDefined();
+      expect(result.trends.wasteChange).toBeCloseTo(13.6, 0);
+    });
+  });
 });

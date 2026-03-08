@@ -85,4 +85,83 @@ export class ReportService {
       [from, to],
     );
   }
+
+  async getActivityFeed(tenantSchema: string, limit: number = 20): Promise<any[]> {
+    const schemaName = tenantSchema.replace(/[^a-z0-9_]/gi, '');
+
+    const query = `
+      SELECT * FROM (
+        SELECT
+          'complaint' as type,
+          'Laporan baru: ' || COALESCE(category, '') as message,
+          id,
+          created_at as timestamp
+        FROM "${schemaName}".complaints
+        WHERE created_at > NOW() - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT
+          'schedule' as type,
+          'Jadwal ' || COALESCE(status, '') || ': ' || COALESCE(route_name, '') as message,
+          id,
+          updated_at as timestamp
+        FROM "${schemaName}".schedules
+        WHERE updated_at > NOW() - INTERVAL '7 days'
+
+        UNION ALL
+
+        SELECT
+          'payment' as type,
+          'Pembayaran ' || COALESCE(status, '') || ': Rp' || COALESCE(amount::text, '0') as message,
+          id,
+          updated_at as timestamp
+        FROM "${schemaName}".transactions
+        WHERE updated_at > NOW() - INTERVAL '7 days'
+      ) activities
+      ORDER BY timestamp DESC
+      LIMIT $1
+    `;
+
+    return this.dataSource.query(query, [limit]);
+  }
+
+  async getDashboardWithComparison(tenantSchema: string): Promise<{
+    current: any;
+    previous: any;
+    trends: Record<string, number>;
+  }> {
+    const current = await this.getDashboardSummary(tenantSchema);
+
+    const schemaName = tenantSchema.replace(/[^a-z0-9_]/gi, '');
+    const prevQuery = `
+      SELECT
+        COALESCE(SUM(tr.volume_kg), 0)::numeric as "totalWasteKg",
+        (SELECT COUNT(DISTINCT driver_id)::int FROM "${schemaName}".gps_logs
+         WHERE recorded_at BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days'
+        ) as "activeDrivers",
+        (SELECT COUNT(*)::int FROM "${schemaName}".complaints
+         WHERE status IN ('submitted','verified','assigned')
+         AND created_at BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days'
+        ) as "pendingComplaints"
+      FROM "${schemaName}".transfer_records tr
+      WHERE tr.checkpoint_at BETWEEN NOW() - INTERVAL '14 days' AND NOW() - INTERVAL '7 days'
+    `;
+
+    const [prev] = await this.dataSource.query(prevQuery);
+    const previous = prev || { totalWasteKg: 0, activeDrivers: 0, pendingComplaints: 0 };
+
+    const calcChange = (curr: number, prev: number) =>
+      prev > 0 ? Math.round(((curr - prev) / prev) * 100 * 10) / 10 : 0;
+
+    return {
+      current,
+      previous,
+      trends: {
+        wasteChange: calcChange(current.totalWasteTodayKg || 0, previous.totalWasteKg || 0),
+        driverChange: calcChange(current.activeDrivers || 0, previous.activeDrivers || 0),
+        complaintChange: calcChange(current.pendingComplaints || 0, previous.pendingComplaints || 0),
+      },
+    };
+  }
 }

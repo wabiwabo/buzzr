@@ -12,11 +12,6 @@ import { Request } from 'express';
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 
-  @Get('dashboard')
-  getDashboard(@Req() req: Request) {
-    return this.reportService.getDashboardSummary(req.tenantSchema!);
-  }
-
   @Get('waste-volume')
   getWasteVolume(@Req() req: Request, @Query('from') from: string, @Query('to') to: string) {
     return this.reportService.getWasteVolumeReport(req.tenantSchema!, from, to);
@@ -35,5 +30,18 @@ export class ReportController {
   @Get('driver-performance')
   getDriverPerformance(@Req() req: Request, @Query('from') from: string, @Query('to') to: string) {
     return this.reportService.getDriverPerformance(req.tenantSchema!, from, to);
+  }
+
+  @Get('activity-feed')
+  getActivityFeed(@Req() req: Request, @Query('limit') limit?: string) {
+    return this.reportService.getActivityFeed(req.tenantSchema!, Number(limit) || 20);
+  }
+
+  @Get('dashboard')
+  getDashboardWithComparison(@Req() req: Request, @Query('compare') compare?: string) {
+    if (compare === 'prev_week') {
+      return this.reportService.getDashboardWithComparison(req.tenantSchema!);
+    }
+    return this.reportService.getDashboardSummary(req.tenantSchema!);
   }
 }
