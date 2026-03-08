@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { Layout } from 'antd';
 import { Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/auth.store';
 import { AppSidebar } from '../components/layout/AppSidebar';
 import { AppHeader } from '../components/layout/AppHeader';
@@ -16,8 +16,6 @@ import { useChecklist } from '../hooks/useChecklist';
 import { useNotificationStore } from '../stores/notification.store';
 
 const WELCOME_DONE_KEY = 'buzzr_welcome_done';
-
-const { Content } = Layout;
 
 const ROLE_LABELS: Record<string, string> = {
   citizen: 'Warga', sweeper: 'Penyapu', tps_operator: 'Operator TPS',
@@ -40,7 +38,6 @@ const DashboardLayout: React.FC = () => {
     return localStorage.getItem(WELCOME_DONE_KEY) !== 'true';
   });
 
-  // Auto-mark checklist items based on navigation
   useEffect(() => {
     const pathToKey: Record<string, string> = {
       '/': 'view_dashboard',
@@ -109,10 +106,8 @@ const DashboardLayout: React.FC = () => {
     );
   }
 
-  const siderWidth = collapsed ? 64 : 240;
-
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <div className="min-h-screen bg-background">
       <div ref={sidebarRef as React.RefObject<HTMLDivElement>}>
         <AppSidebar
           collapsed={collapsed}
@@ -130,7 +125,7 @@ const DashboardLayout: React.FC = () => {
         />
       </div>
 
-      <Layout style={{ marginLeft: siderWidth, transition: 'margin-left 0.2s ease' }}>
+      <div className={cn('transition-[margin-left] duration-200', collapsed ? 'ml-16' : 'ml-60')}>
         <AppHeader
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed(!collapsed)}
@@ -139,18 +134,13 @@ const DashboardLayout: React.FC = () => {
 
         <RealtimeToast />
 
-        <Content
+        <main
           ref={dashboardRef as React.RefObject<HTMLDivElement>}
-          style={{
-            margin: 24,
-            padding: 24,
-            background: 'transparent',
-            minHeight: 'calc(100vh - 56px - 48px)',
-          }}
+          className="p-6"
         >
           <Outlet />
-        </Content>
-      </Layout>
+        </main>
+      </div>
 
       <OnboardingTour
         open={tourOpen}
@@ -168,7 +158,7 @@ const DashboardLayout: React.FC = () => {
       />
 
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
-    </Layout>
+    </div>
   );
 };
 

@@ -1,9 +1,7 @@
 import React from 'react';
-import { Layout, Space, Button } from 'antd';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { NotificationBell } from '../feedback/NotificationBell';
-
-const { Header } = Layout;
 
 interface AppHeaderProps {
   collapsed: boolean;
@@ -15,33 +13,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   collapsed,
   onToggleCollapse,
   notificationBellRef,
-}) => {
-  return (
-    <Header
-      style={{
-        background: '#fff',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid #E5E7EB',
-        position: 'sticky',
-        top: 0,
-        zIndex: 99,
-        height: 56,
-      }}
-    >
-      <Button
-        type="text"
-        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-        onClick={onToggleCollapse}
-      />
+}) => (
+  <header className="sticky top-0 z-[99] flex items-center justify-between h-14 px-6 bg-background border-b">
+    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleCollapse}>
+      {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+    </Button>
 
-      <Space size="middle">
-        <span ref={notificationBellRef as React.RefObject<HTMLSpanElement>}>
-          <NotificationBell />
-        </span>
-      </Space>
-    </Header>
-  );
-};
+    <div className="flex items-center gap-3">
+      <span ref={notificationBellRef as React.RefObject<HTMLSpanElement>}>
+        <NotificationBell />
+      </span>
+    </div>
+  </header>
+);

@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Button, Typography, Space } from 'antd';
-import { RocketOutlined, BarChartOutlined, DashboardOutlined } from '@ant-design/icons';
+import { Rocket, BarChart3, LayoutDashboard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const { Title, Paragraph, Text } = Typography;
+import { cn } from '@/lib/utils';
 
 interface WelcomeFlowProps {
   userName: string;
@@ -14,7 +13,6 @@ interface WelcomeStep {
   icon: React.ReactNode;
   title: string;
   description: string;
-  content?: React.ReactNode;
 }
 
 export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ userName, onComplete }) => {
@@ -22,17 +20,17 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ userName, onComplete }
 
   const steps: WelcomeStep[] = [
     {
-      icon: <RocketOutlined style={{ fontSize: 48, color: '#2563EB' }} />,
+      icon: <Rocket className="h-12 w-12 text-primary" />,
       title: `Selamat Datang, ${userName}!`,
       description: 'Buzzr membantu Anda mengelola operasional persampahan dengan lebih efisien.',
     },
     {
-      icon: <BarChartOutlined style={{ fontSize: 48, color: '#2563EB' }} />,
+      icon: <BarChart3 className="h-12 w-12 text-primary" />,
       title: 'Fitur Utama',
       description: 'Pantau TPS, kelola pengangkutan, lacak keluhan warga, dan analisis performa — semua dalam satu dashboard.',
     },
     {
-      icon: <DashboardOutlined style={{ fontSize: 48, color: '#2563EB' }} />,
+      icon: <LayoutDashboard className="h-12 w-12 text-primary" />,
       title: 'Siap Mulai!',
       description: 'Dashboard Anda sudah siap. Jelajahi fitur-fitur yang tersedia.',
     },
@@ -41,10 +39,7 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ userName, onComplete }
   const isLast = current === steps.length - 1;
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000, background: '#fff',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
+    <div className="fixed inset-0 z-[1000] bg-background flex items-center justify-center">
       <AnimatePresence mode="wait">
         <motion.div
           key={current}
@@ -52,46 +47,35 @@ export const WelcomeFlow: React.FC<WelcomeFlowProps> = ({ userName, onComplete }
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
-          style={{ textAlign: 'center', maxWidth: 480, padding: '0 24px' }}
+          className="text-center max-w-md px-6"
         >
-          <div style={{ marginBottom: 24 }}>{steps[current].icon}</div>
-          <Title level={3}>{steps[current].title}</Title>
-          <Paragraph type="secondary" style={{ marginBottom: 24 }}>
-            {steps[current].description}
-          </Paragraph>
-          {steps[current].content && (
-            <div style={{ marginBottom: 32 }}>{steps[current].content}</div>
-          )}
-          <Space>
+          <div className="mb-6">{steps[current].icon}</div>
+          <h3 className="text-xl font-semibold mb-2">{steps[current].title}</h3>
+          <p className="text-sm text-muted-foreground mb-6">{steps[current].description}</p>
+
+          <div className="flex items-center justify-center gap-2">
             {current > 0 && (
-              <Button onClick={() => setCurrent(current - 1)}>Kembali</Button>
+              <Button variant="outline" onClick={() => setCurrent(current - 1)}>Kembali</Button>
             )}
             {isLast ? (
-              <Button type="primary" size="large" onClick={onComplete}>
-                Mulai Menggunakan Buzzr
-              </Button>
+              <Button size="lg" onClick={onComplete}>Mulai Menggunakan Buzzr</Button>
             ) : (
-              <Button type="primary" onClick={() => setCurrent(current + 1)}>
-                Lanjut
-              </Button>
+              <Button onClick={() => setCurrent(current + 1)}>Lanjut</Button>
             )}
-          </Space>
-          <div style={{ marginTop: 16 }}>
-            <Button type="link" size="small" onClick={onComplete}>
-              Lewati
-            </Button>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 24 }}>
+
+          <div className="mt-4">
+            <Button variant="ghost" size="sm" className="text-xs" onClick={onComplete}>Lewati</Button>
+          </div>
+
+          <div className="flex justify-center gap-2 mt-6">
             {steps.map((_, i) => (
               <div
                 key={i}
-                style={{
-                  width: i === current ? 24 : 8,
-                  height: 8,
-                  borderRadius: 4,
-                  background: i === current ? '#2563EB' : '#E5E7EB',
-                  transition: 'all 250ms ease',
-                }}
+                className={cn(
+                  'h-2 rounded-full transition-all duration-250',
+                  i === current ? 'w-6 bg-primary' : 'w-2 bg-border',
+                )}
               />
             ))}
           </div>
