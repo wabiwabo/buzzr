@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { parsePoints } from '../../utils/format';
 
 interface Schedule {
   id: string;
@@ -56,11 +57,7 @@ export default function BerandaScreen() {
           : notificationsRes.data?.data || [],
       );
 
-      const pts =
-        typeof pointsRes.data === 'number'
-          ? pointsRes.data
-          : pointsRes.data?.points ?? pointsRes.data?.data?.points ?? 0;
-      setPoints(pts);
+      setPoints(parsePoints(pointsRes.data));
     } catch {
       Alert.alert('Error', 'Gagal memuat data. Silakan coba lagi.');
     } finally {

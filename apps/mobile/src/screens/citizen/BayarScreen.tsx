@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  TouchableOpacity,
 } from 'react-native';
 import { PaymentStatus } from '@buzzr/shared-types';
 import { PAYMENT_STATUS_LABELS } from '@buzzr/constants';
 import api from '../../services/api';
+import { formatDate, formatCurrency } from '../../utils/format';
 
 interface Payment {
   id: string;
@@ -28,10 +30,6 @@ interface Payment {
   createdAt?: string;
 }
 
-const formatCurrency = (amount: number): string => {
-  return `Rp ${amount.toLocaleString('id-ID')}`;
-};
-
 const getStatusColor = (status: PaymentStatus): string => {
   switch (status) {
     case PaymentStatus.PENDING:
@@ -46,19 +44,6 @@ const getStatusColor = (status: PaymentStatus): string => {
       return '#722ed1';
     default:
       return '#999';
-  }
-};
-
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return '-';
-  try {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
   }
 };
 
@@ -134,9 +119,9 @@ export default function BayarScreen() {
         <Text style={styles.dateText}>{dateStr}</Text>
         {showPayButton && (
           <View style={styles.payBtnContainer}>
-            <Text style={styles.payBtn} onPress={() => handlePay(payment)}>
-              Bayar Sekarang
-            </Text>
+            <TouchableOpacity onPress={() => handlePay(payment)}>
+              <Text style={styles.payBtn}>Bayar Sekarang</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>

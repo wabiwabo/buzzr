@@ -10,10 +10,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { ComplaintStatus } from '@buzzr/shared-types';
-import { COMPLAINT_STATUS_LABELS } from '@buzzr/constants';
-import { ROLE_LABELS } from '@buzzr/constants';
+import { COMPLAINT_STATUS_LABELS, COMPLAINT_CATEGORY_LABELS, ROLE_LABELS } from '@buzzr/constants';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { formatDate, parsePoints } from '../../utils/format';
 
 interface Complaint {
   id: string;
@@ -23,13 +23,6 @@ interface Complaint {
   created_at?: string;
   createdAt?: string;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  illegal_dumping: 'Sampah Liar',
-  tps_full: 'TPS Penuh',
-  missed_pickup: 'Tidak Diangkut',
-  other: 'Lainnya',
-};
 
 const getComplaintStatusColor = (status: ComplaintStatus): string => {
   switch (status) {
@@ -50,19 +43,6 @@ const getComplaintStatusColor = (status: ComplaintStatus): string => {
   }
 };
 
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return '-';
-  try {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-};
-
 export default function ProfilScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -80,11 +60,7 @@ export default function ProfilScreen() {
           .catch(() => ({ data: [] })),
       ]);
 
-      const pts =
-        typeof pointsRes.data === 'number'
-          ? pointsRes.data
-          : pointsRes.data?.points ?? pointsRes.data?.data?.points ?? 0;
-      setPoints(pts);
+      setPoints(parsePoints(pointsRes.data));
 
       const list = Array.isArray(complaintsRes.data)
         ? complaintsRes.data
@@ -189,7 +165,7 @@ export default function ProfilScreen() {
               <View key={complaint.id} style={styles.complaintCard}>
                 <View style={styles.complaintHeader}>
                   <Text style={styles.complaintCategory}>
-                    {CATEGORY_LABELS[complaint.category] || complaint.category}
+                    {COMPLAINT_CATEGORY_LABELS[complaint.category as keyof typeof COMPLAINT_CATEGORY_LABELS] || complaint.category}
                   </Text>
                   <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
                     <Text style={[styles.statusText, { color: statusColor }]}>

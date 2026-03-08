@@ -13,14 +13,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { ComplaintCategory } from '@buzzr/shared-types';
+import { COMPLAINT_CATEGORY_LABELS } from '@buzzr/constants';
 import api from '../../services/api';
-
-const CATEGORY_LABELS: Record<string, string> = {
-  [ComplaintCategory.ILLEGAL_DUMPING]: 'Sampah Liar',
-  [ComplaintCategory.TPS_FULL]: 'TPS Penuh',
-  [ComplaintCategory.MISSED_PICKUP]: 'Tidak Diangkut',
-  [ComplaintCategory.OTHER]: 'Lainnya',
-};
 
 const CATEGORIES = Object.values(ComplaintCategory);
 
@@ -64,19 +58,48 @@ export default function LaporScreen() {
     })();
   }, []);
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.7,
-      });
-      if (!result.canceled && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
-      }
-    } catch {
-      Alert.alert('Error', 'Gagal memilih gambar.');
-    }
+  const pickImage = () => {
+    Alert.alert('Pilih Sumber', 'Ambil foto dari:', [
+      {
+        text: 'Kamera',
+        onPress: async () => {
+          try {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (!perm.granted) {
+              Alert.alert('Izin Kamera', 'Izin akses kamera diperlukan.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              quality: 0.7,
+            });
+            if (!result.canceled && result.assets.length > 0) {
+              setImageUri(result.assets[0].uri);
+            }
+          } catch {
+            Alert.alert('Error', 'Gagal mengambil foto.');
+          }
+        },
+      },
+      {
+        text: 'Galeri',
+        onPress: async () => {
+          try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ImagePicker.MediaTypeOptions.Images,
+              allowsEditing: true,
+              quality: 0.7,
+            });
+            if (!result.canceled && result.assets.length > 0) {
+              setImageUri(result.assets[0].uri);
+            }
+          } catch {
+            Alert.alert('Error', 'Gagal memilih gambar.');
+          }
+        },
+      },
+      { text: 'Batal', style: 'cancel' },
+    ]);
   };
 
   const resetForm = () => {
@@ -101,12 +124,23 @@ export default function LaporScreen() {
 
     setSubmitting(true);
     try {
-      await api.post('/complaints', {
-        category,
-        description: description.trim(),
-        latitude,
-        longitude,
-        address: address || undefined,
+      const formData = new FormData();
+      formData.append('category', category);
+      formData.append('description', description.trim());
+      formData.append('latitude', String(latitude));
+      formData.append('longitude', String(longitude));
+      if (address) formData.append('address', address);
+      if (imageUri) {
+        const filename = imageUri.split('/').pop() || 'photo.jpg';
+        const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+        formData.append('photo', {
+          uri: imageUri,
+          name: filename,
+          type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+        } as any);
+      }
+      await api.post('/complaints', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       Alert.alert('Berhasil', 'Laporan Anda telah terkirim. Terima kasih!', [
         { text: 'OK', onPress: resetForm },
@@ -136,7 +170,7 @@ export default function LaporScreen() {
               onPress={() => setCategory(cat)}
             >
               <Text style={[styles.categoryText, category === cat && styles.categoryTextActive]}>
-                {CATEGORY_LABELS[cat]}
+                {COMPLAINT_CATEGORY_LABELS[cat]}
               </Text>
             </TouchableOpacity>
           ))}
