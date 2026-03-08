@@ -66,6 +66,22 @@ describe('UserService', () => {
     });
   });
 
+  describe('listUsersPaginated', () => {
+    it('should return paginated users with meta', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'u1', name: 'Ahmad', role: 'driver' }])
+        .mockResolvedValueOnce([{ count: '50' }]);
+
+      const result = await service.listUsersPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'asc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(50);
+      expect(result.meta.totalPages).toBe(2);
+    });
+  });
+
   describe('getUserById', () => {
     it('should return a user by id', async () => {
       dataSource.query.mockResolvedValue([{ id: 'user-1', name: 'Admin' }]);

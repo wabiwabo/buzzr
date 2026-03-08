@@ -3,6 +3,9 @@ import { DataSource } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PASSWORD_ROLES } from '@buzzr/shared-types';
 import * as bcrypt from 'bcrypt';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class UserService {
@@ -42,6 +45,31 @@ export class UserService {
     query += ' ORDER BY name';
 
     return this.dataSource.query(query, params);
+  }
+
+  async listUsersPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    return buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT id, name, email, phone, role, area_id, is_active, created_at FROM "${tenantSchema}".users`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".users`,
+      baseConditions: ['is_active = $1'],
+      baseParams: [true],
+      searchableColumns: ['name', 'email', 'phone'],
+      sortableColumns: ['name', 'email', 'role', 'created_at'],
+      filterableColumns: ['role', 'area_id'],
+      defaultSort: 'name',
+      defaultOrder: 'asc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
   }
 
   async getUserById(tenantSchema: string, userId: string) {

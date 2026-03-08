@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { Request } from 'express';
 
 @Controller('users')
@@ -16,6 +17,20 @@ export class UserController {
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() dto: CreateUserDto, @Req() req: Request) {
     return this.userService.createUser(req.tenantSchema!, dto);
+  }
+
+  @Get('paginated')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.userService.listUsersPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get()
