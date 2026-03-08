@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Buzzr",
+    "slug": "buzzr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "buzzr",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": { "supportsTablet": false, "bundleIdentifier": "com.buzzr.app" },
+    "android": { "adaptiveIcon": { "backgroundColor": "#ffffff" }, "package": "com.buzzr.app" },
+    "plugins": ["expo-secure-store", "expo-location", "expo-image-picker", "expo-camera"]
+  }
+}

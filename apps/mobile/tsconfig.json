@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@buzzr/shared-types": ["../../packages/shared-types/src"],
+      "@buzzr/constants": ["../../packages/constants/src"]
+    }
+  }
+}

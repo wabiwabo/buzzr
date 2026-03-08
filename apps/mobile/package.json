@@ -1,0 +1,35 @@
+{
+  "name": "@buzzr/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "main": "App.tsx",
+  "scripts": {
+    "dev": "npx expo start",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@buzzr/shared-types": "workspace:*",
+    "@buzzr/constants": "workspace:*",
+    "expo": "~52.0.0",
+    "expo-secure-store": "~14.0.0",
+    "expo-location": "~18.0.0",
+    "expo-image-picker": "~16.0.0",
+    "expo-camera": "~16.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.6",
+    "react-native-safe-area-context": "4.14.1",
+    "react-native-screens": "~4.4.0",
+    "@react-navigation/native": "^7.0.0",
+    "@react-navigation/native-stack": "^7.0.0",
+    "@react-navigation/bottom-tabs": "^7.0.0",
+    "axios": "^1.7.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.0",
+    "typescript": "^5.7.0"
+  }
+}
