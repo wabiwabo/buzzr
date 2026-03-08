@@ -1,190 +1,176 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Alert, InputNumber } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, Button, Space, Dropdown, Tag, Checkbox, InputNumber, message } from 'antd';
+import { EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
+import { PageHeader, StatusBadge } from '../components/common';
+import { SmartTable, DetailDrawer } from '../components/data';
+import { useTableState } from '../hooks/useTableState';
+import type { FilterDef } from '../hooks/useTableState';
 
 interface Schedule {
   id: string;
   route_name: string;
   vehicle_id: string;
+  vehicle_plate?: string;
   driver_id: string;
+  driver_name?: string;
   schedule_type: string;
   recurring_days: number[] | null;
   scheduled_date: string | null;
   start_time: string;
   status: string;
-  stops?: any[];
 }
 
 const dayLabels = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const dayOptions = dayLabels.map((label, idx) => ({ label, value: idx }));
 
-const statusColors: Record<string, string> = {
-  active: 'blue',
-  completed: 'green',
-  cancelled: 'red',
-  in_progress: 'orange',
-};
+const filterDefs: FilterDef[] = [
+  { key: 'schedule_type', label: 'Tipe', type: 'select', options: [
+    { label: 'Rutin', value: 'recurring' }, { label: 'On-Demand', value: 'on_demand' },
+  ]},
+  { key: 'status', label: 'Status', type: 'select', options: [
+    { label: 'Aktif', value: 'active' }, { label: 'Selesai', value: 'completed' },
+    { label: 'Dalam Proses', value: 'in_progress' }, { label: 'Dibatalkan', value: 'cancelled' },
+  ]},
+];
 
-export default function SchedulePage() {
-  const [data, setData] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const SchedulePage: React.FC = () => {
+  const tableState = useTableState<Schedule>({ searchFields: ['route_name', 'driver_name', 'vehicle_plate'] });
   const [modalOpen, setModalOpen] = useState(false);
-  const [stopModalOpen, setStopModalOpen] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [drawerRecord, setDrawerRecord] = useState<Schedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
-  const [stopForm] = Form.useForm();
 
   const fetchData = async () => {
+    tableState.setLoading(true);
     try {
-      setLoading(true);
-      // The schedule controller doesn't have a general list endpoint,
-      // so we use the available endpoints. Fetch all schedules if an admin list is available.
-      // Fallback: try to list via a general query (some controllers expose it).
-      const res = await api.get('/schedules', { params: {} });
-      setData(Array.isArray(res.data) ? res.data : []);
-      setError(null);
-    } catch (err: any) {
-      // If there's no list endpoint, show empty state
-      if (err.response?.status === 404) {
-        setData([]);
-        setError(null);
-      } else {
-        setError(err.response?.data?.message || 'Gagal memuat data jadwal');
-      }
-    } finally {
-      setLoading(false);
-    }
+      const { data } = await api.get('/schedules', { params: {} });
+      tableState.setData(Array.isArray(data) ? data : []);
+    } catch { /* empty state is fine */ }
+    tableState.setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleCreate = async (values: any) => {
+    setSubmitting(true);
     try {
-      setSubmitting(true);
       await api.post('/schedules', values);
       message.success('Jadwal berhasil dibuat');
       setModalOpen(false);
       form.resetFields();
       fetchData();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gagal membuat jadwal');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleAddStop = async (values: any) => {
-    if (!selectedSchedule) return;
-    try {
-      setSubmitting(true);
-      await api.post(`/schedules/${selectedSchedule.id}/stops`, values);
-      message.success('Stop berhasil ditambahkan');
-      setStopModalOpen(false);
-      stopForm.resetFields();
-      fetchData();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gagal menambahkan stop');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { message.error('Gagal membuat jadwal'); }
+    setSubmitting(false);
   };
 
   const columns: ColumnsType<Schedule> = [
-    { title: 'Nama Rute', dataIndex: 'route_name', key: 'route_name' },
-    { title: 'Kendaraan', dataIndex: 'vehicle_id', key: 'vehicle_id', ellipsis: true },
-    { title: 'Driver', dataIndex: 'driver_id', key: 'driver_id', ellipsis: true },
+    { title: 'Nama Rute', dataIndex: 'route_name', sorter: true, width: 180 },
+    { title: 'Kendaraan', width: 130, render: (_, r) => r.vehicle_plate || r.vehicle_id?.slice(0, 8) },
+    { title: 'Driver', width: 140, render: (_, r) => r.driver_name || r.driver_id?.slice(0, 8) },
     {
-      title: 'Tipe', dataIndex: 'schedule_type', key: 'schedule_type',
-      render: (t: string) => <Tag color={t === 'recurring' ? 'blue' : 'purple'}>{t === 'recurring' ? 'Rutin' : 'On-Demand'}</Tag>,
+      title: 'Tipe', dataIndex: 'schedule_type', width: 110,
+      render: (t) => <Tag color={t === 'recurring' ? 'blue' : 'purple'}>{t === 'recurring' ? 'Rutin' : 'On-Demand'}</Tag>,
     },
     {
-      title: 'Hari/Tanggal', key: 'schedule_info',
-      render: (_: any, record: Schedule) => {
+      title: 'Hari/Tanggal', width: 160,
+      render: (_, record) => {
         if (record.schedule_type === 'recurring' && record.recurring_days) {
           return record.recurring_days.map((d) => dayLabels[d] || d).join(', ');
         }
         return record.scheduled_date || '-';
       },
     },
-    { title: 'Jam Mulai', dataIndex: 'start_time', key: 'start_time' },
+    { title: 'Jam', dataIndex: 'start_time', width: 80 },
+    { title: 'Status', dataIndex: 'status', width: 120, render: (v) => <StatusBadge status={v} /> },
     {
-      title: 'Status', dataIndex: 'status', key: 'status',
-      render: (s: string) => <Tag color={statusColors[s] || 'default'}>{s?.toUpperCase()}</Tag>,
-    },
-    {
-      title: 'Aksi', key: 'actions',
-      render: (_: any, record: Schedule) => (
-        <Button size="small" onClick={() => { setSelectedSchedule(record); setStopModalOpen(true); }}>
-          Tambah Stop
-        </Button>
+      title: 'Aksi', width: 80,
+      render: (_, record) => (
+        <Dropdown menu={{
+          items: [
+            { key: 'view', icon: <EyeOutlined />, label: 'Detail', onClick: () => setDrawerRecord(record) },
+          ],
+        }}>
+          <Button type="text" icon={<MoreOutlined />} size="small" />
+        </Dropdown>
       ),
     },
   ];
 
-  if (error && !data.length) return <Alert type="error" message={error} />;
-
   return (
-    <>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>Tambah Jadwal</Button>
-      </Space>
+    <div>
+      <PageHeader
+        title="Manajemen Jadwal"
+        description="Kelola jadwal pengangkutan sampah"
+        breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Jadwal' }]}
+        primaryAction={{ label: 'Tambah Jadwal', onClick: () => setModalOpen(true) }}
+      />
 
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      <SmartTable<Schedule>
+        tableState={tableState}
+        columns={columns}
+        filterDefs={filterDefs}
+        searchPlaceholder="Cari nama rute, driver, kendaraan..."
+        onRefresh={fetchData}
+        onRowClick={(r) => setDrawerRecord(r)}
+        emptyTitle="Belum ada jadwal"
+        emptyDescription="Buat jadwal pertama untuk mengatur pengangkutan"
+        emptyActionLabel="Tambah Jadwal"
+        onEmptyAction={() => setModalOpen(true)}
+      />
 
-      <Modal title="Tambah Jadwal" open={modalOpen} onCancel={() => setModalOpen(false)} footer={null} width={600}>
+      <Modal title="Tambah Jadwal" open={modalOpen} onCancel={() => { setModalOpen(false); form.resetFields(); }} footer={null} width={560}>
         <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item name="routeName" label="Nama Rute" rules={[{ required: true }]}>
-            <Input />
+            <Input placeholder="Contoh: Rute Bandung Utara" />
           </Form.Item>
-          <Form.Item name="vehicleId" label="ID Kendaraan" rules={[{ required: true }]}>
-            <Input placeholder="UUID kendaraan" />
-          </Form.Item>
-          <Form.Item name="driverId" label="ID Driver" rules={[{ required: true }]}>
-            <Input placeholder="UUID driver" />
-          </Form.Item>
+          <Space style={{ width: '100%' }} size={16}>
+            <Form.Item name="vehicleId" label="ID Kendaraan" rules={[{ required: true }]} style={{ flex: 1 }}>
+              <Input placeholder="UUID kendaraan" />
+            </Form.Item>
+            <Form.Item name="driverId" label="ID Driver" rules={[{ required: true }]} style={{ flex: 1 }}>
+              <Input placeholder="UUID driver" />
+            </Form.Item>
+          </Space>
           <Form.Item name="scheduleType" label="Tipe Jadwal" rules={[{ required: true }]}>
-            <Select>
-              <Select.Option value="recurring">Rutin</Select.Option>
-              <Select.Option value="on_demand">On-Demand</Select.Option>
-            </Select>
+            <Select options={[
+              { label: 'Rutin', value: 'recurring' }, { label: 'On-Demand', value: 'on_demand' },
+            ]} />
           </Form.Item>
           <Form.Item name="recurringDays" label="Hari (untuk Rutin)">
-            <Select mode="multiple" placeholder="Pilih hari">
-              {dayLabels.map((label, idx) => <Select.Option key={idx} value={idx}>{label}</Select.Option>)}
-            </Select>
+            <Checkbox.Group options={dayOptions} />
           </Form.Item>
-          <Form.Item name="scheduledDate" label="Tanggal (untuk On-Demand)">
-            <Input placeholder="YYYY-MM-DD" />
-          </Form.Item>
-          <Form.Item name="startTime" label="Jam Mulai" rules={[{ required: true }]}>
-            <Input placeholder="HH:MM" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting} block>Simpan</Button>
-          </Form.Item>
+          <Space style={{ width: '100%' }} size={16}>
+            <Form.Item name="scheduledDate" label="Tanggal (On-Demand)" style={{ flex: 1 }}>
+              <Input placeholder="YYYY-MM-DD" />
+            </Form.Item>
+            <Form.Item name="startTime" label="Jam Mulai" rules={[{ required: true }]} style={{ flex: 1 }}>
+              <Input placeholder="HH:MM" />
+            </Form.Item>
+          </Space>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
+            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
+          </div>
         </Form>
       </Modal>
 
-      <Modal title={`Tambah Stop - ${selectedSchedule?.route_name || ''}`} open={stopModalOpen}
-        onCancel={() => setStopModalOpen(false)} footer={null}>
-        <Form form={stopForm} layout="vertical" onFinish={handleAddStop}>
-          <Form.Item name="tpsId" label="ID TPS" rules={[{ required: true }]}>
-            <Input placeholder="UUID TPS" />
-          </Form.Item>
-          <Form.Item name="stopOrder" label="Urutan Stop" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="estimatedArrival" label="Estimasi Kedatangan">
-            <Input placeholder="HH:MM" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting} block>Simpan</Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </>
+      <DetailDrawer
+        open={!!drawerRecord}
+        onClose={() => setDrawerRecord(null)}
+        title={`Jadwal: ${drawerRecord?.route_name || ''}`}
+        fields={drawerRecord ? [
+          { label: 'Tipe', value: drawerRecord.schedule_type === 'recurring' ? 'Rutin' : 'On-Demand' },
+          { label: 'Status', value: <StatusBadge status={drawerRecord.status} /> },
+          { label: 'Kendaraan', value: drawerRecord.vehicle_plate || drawerRecord.vehicle_id },
+          { label: 'Driver', value: drawerRecord.driver_name || drawerRecord.driver_id },
+          { label: 'Jam Mulai', value: drawerRecord.start_time },
+          { label: 'Hari', value: drawerRecord.recurring_days?.map((d) => dayLabels[d]).join(', ') || drawerRecord.scheduled_date || '-' },
+        ] : []}
+      />
+    </div>
   );
-}
+};
+
+export default SchedulePage;
