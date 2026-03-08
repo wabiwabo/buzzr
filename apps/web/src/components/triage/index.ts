@@ -6,3 +6,6 @@ export { TriageToolbar } from './TriageToolbar';
 export { TriageBulkBar } from './TriageBulkBar';
 export { SlaCountdown } from './SlaCountdown';
 export { StatusStepper } from './StatusStepper';
+export { FilterSidebar } from './FilterSidebar';
+export { FacetGroup } from './FacetGroup';
+export { SavedViewList } from './SavedViewList';
