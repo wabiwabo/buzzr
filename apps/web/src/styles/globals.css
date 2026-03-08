@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+@theme {
+  --font-sans: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --color-background: #FFFFFF;
+  --color-foreground: #111827;
+  --color-muted: #F3F4F6;
+  --color-muted-foreground: #6B7280;
+  --color-border: #E5E7EB;
+  --color-input: #E5E7EB;
+  --color-ring: #2563EB;
+
+  --color-primary: #2563EB;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F3F4F6;
+  --color-secondary-foreground: #111827;
+  --color-accent: #F3F4F6;
+  --color-accent-foreground: #111827;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+
+  --color-positive: #22C55E;
+  --color-warning: #F59E0B;
+  --color-negative: #EF4444;
+  --color-info: #3B82F6;
+  --color-neutral: #6B7280;
+
+  --color-organic: #22C55E;
+  --color-inorganic: #3B82F6;
+  --color-b3: #EF4444;
+  --color-recyclable: #F59E0B;
+
+  --color-sla-normal: #3B82F6;
+  --color-sla-warning: #F59E0B;
+  --color-sla-critical: #EF4444;
+
+  --color-severity-critical: #EF4444;
+  --color-severity-warning: #F59E0B;
+  --color-severity-info: #3B82F6;
+
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F9FAFB;
+  --color-surface-selected: #EFF6FF;
+  --color-surface-muted: #F3F4F6;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #111827;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #111827;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 64px;
+  --header-height: 56px;
+  --filter-sidebar-width: 220px;
+  --preview-panel-width: 420px;
+
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "tnum";
+  }
+}
