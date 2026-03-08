@@ -7,6 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
 import { Request } from 'express';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Controller('tps')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -23,6 +24,19 @@ export class TpsController {
   @Roles(UserRole.TPS_OPERATOR, UserRole.SWEEPER, UserRole.DLH_ADMIN)
   recordWaste(@Body() dto: RecordWasteDto, @Req() req: Request) {
     return this.tpsService.recordWaste(req.tenantSchema!, dto);
+  }
+
+  @Get('paginated')
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.tpsService.listTpsPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get()

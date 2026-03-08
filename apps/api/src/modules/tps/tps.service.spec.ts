@@ -59,6 +59,22 @@ describe('TpsService', () => {
     });
   });
 
+  describe('listTpsPaginated', () => {
+    it('should return paginated TPS with nearCapacity flag', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'tps-1', name: 'TPS A', capacity_tons: 10, current_load_tons: 9 }])
+        .mockResolvedValueOnce([{ count: '30' }]);
+
+      const result = await service.listTpsPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'asc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].nearCapacity).toBe(true);
+      expect(result.meta.total).toBe(30);
+    });
+  });
+
   describe('listTps', () => {
     it('should return TPS with nearCapacity flag', async () => {
       dataSource.query.mockResolvedValue([

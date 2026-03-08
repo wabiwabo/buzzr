@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, Query, Headers, UseGuards, Req, HttpCode } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -23,6 +24,21 @@ export class PaymentController {
   handleWebhook(@Body() data: any, @Headers('x-callback-token') token: string) {
     // TODO: Verify webhook signature with xenditService
     return this.paymentService.handleWebhook(data);
+  }
+
+  @Get('paginated')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.paymentService.listPaymentsPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get()

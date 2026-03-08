@@ -2,6 +2,9 @@ import { Injectable, Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { randomUUID } from 'crypto';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class PaymentService {
@@ -76,6 +79,29 @@ export class PaymentService {
 
     query += ' ORDER BY t.created_at DESC';
     return this.dataSource.query(query, params);
+  }
+
+  async listPaymentsPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    return buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT t.id, t.type, t.amount, t.status, t.reference_id, t.description, t.created_at, t.paid_at, t.expired_at, u.name as user_name FROM "${tenantSchema}".transactions t LEFT JOIN "${tenantSchema}".users u ON t.user_id = u.id`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".transactions t`,
+      searchableColumns: ['t.reference_id'],
+      sortableColumns: ['t.created_at', 't.amount', 't.status'],
+      filterableColumns: ['t.type', 't.status'],
+      defaultSort: 't.created_at',
+      defaultOrder: 'desc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
   }
 
   async getOverdueInvoices(tenantSchema: string) {

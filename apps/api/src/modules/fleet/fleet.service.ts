@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class FleetService {
@@ -49,6 +52,31 @@ export class FleetService {
 
     query += ' ORDER BY v.plate_number';
     return this.dataSource.query(query, params);
+  }
+
+  async listVehiclesPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    return buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT v.id, v.plate_number, v.type, v.capacity_tons, v.driver_id, v.is_active, v.created_at, u.name as driver_name FROM "${tenantSchema}".vehicles v LEFT JOIN "${tenantSchema}".users u ON v.driver_id = u.id`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".vehicles v`,
+      baseConditions: ['v.is_active = $1'],
+      baseParams: [true],
+      searchableColumns: ['v.plate_number'],
+      sortableColumns: ['v.plate_number', 'v.type', 'v.created_at'],
+      filterableColumns: ['v.type'],
+      defaultSort: 'v.plate_number',
+      defaultOrder: 'asc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
   }
 
   async getVehicleById(tenantSchema: string, id: string) {

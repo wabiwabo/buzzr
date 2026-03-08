@@ -63,6 +63,22 @@ describe('PaymentService', () => {
     });
   });
 
+  describe('listPaymentsPaginated', () => {
+    it('should return paginated payments with meta', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'tx-1', type: 'retribution', amount: 50000 }])
+        .mockResolvedValueOnce([{ count: '200' }]);
+
+      const result = await service.listPaymentsPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'desc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(200);
+      expect(result.meta.totalPages).toBe(8);
+    });
+  });
+
   describe('listPayments', () => {
     it('should return filtered payments', async () => {
       dataSource.query.mockResolvedValue([

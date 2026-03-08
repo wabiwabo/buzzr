@@ -31,6 +31,22 @@ describe('ComplaintService', () => {
     });
   });
 
+  describe('listComplaintsPaginated', () => {
+    it('should return paginated complaints with meta', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'c-1', description: 'Sampah liar', status: 'submitted' }])
+        .mockResolvedValueOnce([{ count: '100' }]);
+
+      const result = await service.listComplaintsPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'desc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(100);
+      expect(result.meta.totalPages).toBe(4);
+    });
+  });
+
   describe('assignComplaint', () => {
     it('should assign to petugas and update status', async () => {
       dataSource.query.mockResolvedValue([{ id: 'c-1', status: 'assigned', assigned_to: 'petugas-1' }]);

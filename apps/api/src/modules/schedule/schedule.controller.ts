@@ -1,10 +1,11 @@
-import { Controller, Post, Get, Patch, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto, AddStopDto } from './dto/create-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { Request } from 'express';
 
 @Controller('schedules')
@@ -22,6 +23,20 @@ export class ScheduleController {
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   addStop(@Param('id') id: string, @Body() dto: AddStopDto, @Req() req: Request) {
     return this.scheduleService.addStop(req.tenantSchema!, id, dto);
+  }
+
+  @Get('paginated')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.scheduleService.listSchedulesPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get('today')

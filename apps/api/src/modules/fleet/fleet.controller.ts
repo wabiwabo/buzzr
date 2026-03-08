@@ -6,6 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
 import { Request } from 'express';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Controller('fleet')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -16,6 +17,19 @@ export class FleetController {
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   create(@Body() dto: CreateVehicleDto, @Req() req: Request) {
     return this.fleetService.createVehicle(req.tenantSchema!, dto);
+  }
+
+  @Get('paginated')
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.fleetService.listVehiclesPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get()

@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateComplaintDto } from './dto/create-complaint.dto';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class ComplaintService {
@@ -57,6 +60,29 @@ export class ComplaintService {
     if (filters.reporterId) { params.push(filters.reporterId); query += ` AND c.reporter_id = $${params.length}`; }
     query += ' ORDER BY c.created_at DESC';
     return this.dataSource.query(query, params);
+  }
+
+  async listComplaintsPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    return buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT c.id, c.category, c.description, c.status, c.address, c.latitude, c.longitude, c.rating, c.created_at, c.resolved_at, u.name as reporter_name, a.name as assignee_name FROM "${tenantSchema}".complaints c LEFT JOIN "${tenantSchema}".users u ON c.reporter_id = u.id LEFT JOIN "${tenantSchema}".users a ON c.assigned_to = a.id`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".complaints c`,
+      searchableColumns: ['c.description', 'c.address'],
+      sortableColumns: ['c.created_at', 'c.status', 'c.category'],
+      filterableColumns: ['c.status', 'c.category'],
+      defaultSort: 'c.created_at',
+      defaultOrder: 'desc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
   }
 
   async getComplaintById(tenantSchema: string, id: string) {

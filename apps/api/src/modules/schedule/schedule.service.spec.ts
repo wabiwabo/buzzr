@@ -68,6 +68,21 @@ describe('ScheduleService', () => {
     });
   });
 
+  describe('listSchedulesPaginated', () => {
+    it('should return paginated schedules with meta', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'sch-1', route_name: 'Rute Menteng', status: 'pending' }])
+        .mockResolvedValueOnce([{ count: '20' }]);
+
+      const result = await service.listSchedulesPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'desc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(20);
+    });
+  });
+
   describe('getTodaySchedules', () => {
     it('should return schedules for today for a driver', async () => {
       dataSource.query.mockResolvedValue([

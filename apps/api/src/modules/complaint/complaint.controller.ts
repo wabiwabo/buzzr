@@ -6,6 +6,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
 import { Request } from 'express';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Controller('complaints')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -17,6 +18,19 @@ export class ComplaintController {
   create(@Body() dto: CreateComplaintDto, @Req() req: any) {
     dto.reporterId = req.user.userId;
     return this.complaintService.createComplaint(req.tenantSchema!, dto);
+  }
+
+  @Get('paginated')
+  listPaginated(
+    @Req() req: Request,
+    @Query() query: PaginationQueryDto,
+    @Query('filters') filtersStr?: string,
+  ) {
+    let filters: Record<string, string> | undefined;
+    if (filtersStr) {
+      try { filters = JSON.parse(filtersStr); } catch { /* ignore */ }
+    }
+    return this.complaintService.listComplaintsPaginated(req.tenantSchema!, query, filters);
   }
 
   @Get()

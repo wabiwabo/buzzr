@@ -3,6 +3,9 @@ import { DataSource } from 'typeorm';
 import { CreateTpsDto } from './dto/create-tps.dto';
 import { RecordWasteDto } from './dto/record-waste.dto';
 import { randomUUID } from 'crypto';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class TpsService {
@@ -68,6 +71,34 @@ export class TpsService {
       ...tps,
       nearCapacity: tps.capacity_tons > 0 && (tps.current_load_tons / tps.capacity_tons) > 0.8,
     }));
+  }
+
+  async listTpsPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    const result = await buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT id, name, type, status, address, area_id, capacity_tons, current_load_tons, qr_code, ST_Y(coordinates::geometry) as latitude, ST_X(coordinates::geometry) as longitude, created_at FROM "${tenantSchema}".tps_locations`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".tps_locations`,
+      searchableColumns: ['name', 'address'],
+      sortableColumns: ['name', 'type', 'status', 'capacity_tons', 'current_load_tons', 'created_at'],
+      filterableColumns: ['type', 'status', 'area_id'],
+      defaultSort: 'name',
+      defaultOrder: 'asc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
+    result.data = result.data.map((tps: any) => ({
+      ...tps,
+      nearCapacity: tps.capacity_tons > 0 && (tps.current_load_tons / tps.capacity_tons) > 0.8,
+    }));
+    return result;
   }
 
   async findNearby(tenantSchema: string, lat: number, lng: number, radiusMeters: number = 1000) {

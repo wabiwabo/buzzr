@@ -45,6 +45,21 @@ describe('FleetService', () => {
     });
   });
 
+  describe('listVehiclesPaginated', () => {
+    it('should return paginated vehicles with meta', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{ id: 'v-1', plate_number: 'B 1234 CD', driver_name: 'John' }])
+        .mockResolvedValueOnce([{ count: '15' }]);
+
+      const result = await service.listVehiclesPaginated('dlh_demo', {
+        page: 1, limit: 25, order: 'asc',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(15);
+    });
+  });
+
   describe('listVehicles', () => {
     it('should list vehicles with driver info', async () => {
       dataSource.query.mockResolvedValue([

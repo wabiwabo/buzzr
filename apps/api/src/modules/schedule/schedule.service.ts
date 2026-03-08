@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateScheduleDto, AddStopDto } from './dto/create-schedule.dto';
+import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
+import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
+import type { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class ScheduleService {
@@ -47,6 +50,29 @@ export class ScheduleService {
        ORDER BY s.start_time`,
       [driverId, dayOfWeek],
     );
+  }
+
+  async listSchedulesPaginated(
+    tenantSchema: string,
+    query: PaginationQueryDto,
+    filters?: Record<string, string>,
+  ): Promise<PaginatedResponse<any>> {
+    return buildPaginatedQuery(this.dataSource, {
+      baseQuery: `SELECT s.id, s.route_name, s.schedule_type, s.status, s.start_time, s.scheduled_date, s.recurring_days, s.created_at, u.name as driver_name, v.plate_number FROM "${tenantSchema}".schedules s LEFT JOIN "${tenantSchema}".users u ON s.driver_id = u.id LEFT JOIN "${tenantSchema}".vehicles v ON s.vehicle_id = v.id`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".schedules s`,
+      searchableColumns: ['s.route_name'],
+      sortableColumns: ['s.start_time', 's.created_at', 's.route_name'],
+      filterableColumns: ['s.schedule_type', 's.status'],
+      defaultSort: 's.created_at',
+      defaultOrder: 'desc',
+    }, {
+      page: query.page,
+      limit: query.limit,
+      sort: query.sort,
+      order: query.order,
+      search: query.search,
+      filters,
+    });
   }
 
   async updateStatus(tenantSchema: string, scheduleId: string, status: string) {
