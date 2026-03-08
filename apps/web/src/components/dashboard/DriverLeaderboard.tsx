@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography, Progress } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import api from '../../services/api';
-
-const { Text } = Typography;
 
 interface DriverRecord {
   id: string;
@@ -38,43 +38,44 @@ export const DriverLeaderboard: React.FC<DriverLeaderboardProps> = ({ loading: p
   }, []);
 
   const maxVolume = Math.max(...drivers.map((d) => Number(d.total_volume_kg || 0)), 1);
+  const isLoading = parentLoading || loading;
 
   return (
-    <Card title="Top Driver" size="small" loading={parentLoading || loading}>
-      {drivers.map((d, i) => (
-        <div
-          key={d.id}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '8px 0',
-            borderBottom: i < drivers.length - 1 ? '1px solid #F3F4F6' : 'none',
-            cursor: 'pointer',
-          }}
-          onClick={() => navigate('/fleet')}
-        >
-          <Text style={{ width: 20, fontSize: 13, color: '#9CA3AF', textAlign: 'center' }}>
-            {i + 1}
-          </Text>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontSize: 13, display: 'block' }} ellipsis>{d.name}</Text>
-            <Progress
-              percent={Math.round((Number(d.total_volume_kg || 0) / maxVolume) * 100)}
-              size="small"
-              showInfo={false}
-              strokeColor="#2563EB"
-              style={{ margin: 0 }}
-            />
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Top Driver</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
-          <Text style={{ fontSize: 12, color: '#6B7280', flexShrink: 0 }}>
-            {Number(d.total_volume_kg || 0).toLocaleString('id-ID')} kg
-          </Text>
-        </div>
-      ))}
-      {drivers.length === 0 && (
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Text type="secondary">Belum ada data</Text>
-        </div>
-      )}
+        ) : drivers.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Belum ada data</p>
+        ) : (
+          drivers.map((d, i) => (
+            <div
+              key={d.id}
+              className="flex items-center gap-3 py-2 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => navigate('/fleet')}
+            >
+              <span className="w-5 text-xs text-muted-foreground text-center tabular-nums">
+                {i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{d.name}</p>
+                <Progress
+                  value={Math.round((Number(d.total_volume_kg || 0) / maxVolume) * 100)}
+                  className="h-1.5 mt-1"
+                />
+              </div>
+              <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
+                {Number(d.total_volume_kg || 0).toLocaleString('id-ID')} kg
+              </span>
+            </div>
+          ))
+        )}
+      </CardContent>
     </Card>
   );
 };

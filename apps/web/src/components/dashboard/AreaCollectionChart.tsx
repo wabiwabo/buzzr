@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Typography } from 'antd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import api from '../../services/api';
 import { ProgressRing } from '../common';
-
-const { Text } = Typography;
 
 interface PerformanceData {
   collectionRate: number;
@@ -43,17 +42,28 @@ export const AreaCollectionChart: React.FC<AreaCollectionChartProps> = ({ loadin
   const isLoading = parentLoading || loading;
 
   return (
-    <Card
-      title="Ringkasan Performa"
-      size="small"
-      loading={isLoading}
-      extra={!data && !isLoading ? <Text type="secondary" style={{ fontSize: 11 }}>Data belum tersedia</Text> : undefined}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-around', padding: '24px 0' }}>
-        <ProgressRing value={data?.collectionRate ?? 0} label="Collection Rate" />
-        <ProgressRing value={data?.slaCompliance ?? 0} label="SLA Compliance" />
-        <ProgressRing value={data?.tpsCapacity ?? 0} label="Kapasitas TPS" />
-      </div>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Ringkasan Performa</CardTitle>
+          {!data && !isLoading && (
+            <span className="text-xs text-muted-foreground">Data belum tersedia</span>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-around py-6">
+            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-20 rounded-full" />)}
+          </div>
+        ) : (
+          <div className="flex justify-around py-6">
+            <ProgressRing value={data?.collectionRate ?? 0} label="Collection Rate" />
+            <ProgressRing value={data?.slaCompliance ?? 0} label="SLA Compliance" />
+            <ProgressRing value={data?.tpsCapacity ?? 0} label="Kapasitas TPS" />
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

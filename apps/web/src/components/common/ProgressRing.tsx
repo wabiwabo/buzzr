@@ -1,7 +1,4 @@
 import React from 'react';
-import { Typography } from 'antd';
-
-const { Text } = Typography;
 
 interface ProgressRingProps {
   value: number;
@@ -12,9 +9,9 @@ interface ProgressRingProps {
 }
 
 const getColor = (value: number): string => {
-  if (value >= 80) return '#22C55E';
-  if (value >= 50) return '#F59E0B';
-  return '#EF4444';
+  if (value >= 80) return 'var(--color-positive)';
+  if (value >= 50) return 'var(--color-warning)';
+  return 'var(--color-negative)';
 };
 
 export const ProgressRing: React.FC<ProgressRingProps> = ({
@@ -30,14 +27,14 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const color = getColor(value);
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div className="text-center">
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#F3F4F6"
+          stroke="hsl(var(--border))"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -64,16 +61,16 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
             transformOrigin: 'center',
             fontSize: size * 0.22,
             fontWeight: 600,
-            fill: '#1F2937',
+            fill: 'hsl(var(--foreground))',
           }}
         >
           {Math.round(value)}{suffix}
         </text>
       </svg>
       {label && (
-        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+        <span className="text-xs text-muted-foreground block mt-1">
           {label}
-        </Text>
+        </span>
       )}
     </div>
   );

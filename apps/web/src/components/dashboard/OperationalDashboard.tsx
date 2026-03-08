@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Typography, Tag } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { MapPin, CheckCircle, Clock } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '../../services/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '../common';
-
-const { Title, Text } = Typography;
 
 interface ScheduleRecord {
   id: string;
@@ -60,57 +60,77 @@ export const OperationalDashboard: React.FC<OperationalDashboardProps> = ({ role
     s.schedule_type === 'recurring' || s.scheduled_date === dayjs().format('YYYY-MM-DD')
   );
 
+  const statusVariant = (status: string) => {
+    if (status === 'in_progress') return 'bg-info/10 text-info border-info/20';
+    if (status === 'completed') return 'bg-positive/10 text-positive border-positive/20';
+    return 'bg-neutral/10 text-neutral border-neutral/20';
+  };
+
+  const statusLabel = (status: string) => {
+    if (status === 'in_progress') return 'Dalam Proses';
+    if (status === 'completed') return 'Selesai';
+    return 'Menunggu';
+  };
+
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <Title level={4} style={{ margin: 0 }}>Tugas Hari Ini</Title>
-        <Text type="secondary">{dayjs().format('dddd, D MMMM YYYY')}</Text>
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold">Tugas Hari Ini</h4>
+        <p className="text-sm text-muted-foreground">{dayjs().format('dddd, D MMMM YYYY')}</p>
       </div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <StatCard title="Rute Hari Ini" value={todaySchedules.length} prefix={<EnvironmentOutlined style={{ color: '#3B82F6' }} />} loading={loading} />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard title="TPS Dikunjungi" value={todaySchedules.reduce((sum, s) => sum + (s.stop_count || 0), 0)} prefix={<CheckCircleOutlined style={{ color: '#22C55E' }} />} loading={loading} />
-        </Col>
-        <Col xs={24} sm={8}>
-          <StatCard title="Keluhan Ditugaskan" value={complaints.length} prefix={<ClockCircleOutlined style={{ color: '#F59E0B' }} />} loading={loading} />
-        </Col>
-      </Row>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatCard title="Rute Hari Ini" value={todaySchedules.length} prefix={<MapPin className="h-4 w-4 text-info" />} loading={loading} />
+        <StatCard title="TPS Dikunjungi" value={todaySchedules.reduce((sum, s) => sum + (s.stop_count || 0), 0)} prefix={<CheckCircle className="h-4 w-4 text-positive" />} loading={loading} />
+        <StatCard title="Keluhan Ditugaskan" value={complaints.length} prefix={<Clock className="h-4 w-4 text-warning" />} loading={loading} />
+      </div>
 
-      <Card title="Jadwal Hari Ini" size="small" loading={loading} style={{ marginBottom: 24 }}>
-        {todaySchedules.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center' }}>
-            <Text type="secondary">Tidak ada jadwal hari ini</Text>
-          </div>
-        ) : (
-          todaySchedules.map((s) => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-              <Text strong style={{ width: 50, fontSize: 13, color: '#6B7280' }}>{s.start_time}</Text>
-              <div style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13 }}>{s.route_name}</Text>
-              </div>
-              <Tag color={s.status === 'in_progress' ? 'blue' : s.status === 'completed' ? 'green' : 'default'}>
-                {s.status === 'in_progress' ? 'Dalam Proses' : s.status === 'completed' ? 'Selesai' : 'Menunggu'}
-              </Tag>
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Jadwal Hari Ini</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
-          ))
-        )}
+          ) : todaySchedules.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Tidak ada jadwal hari ini</p>
+          ) : (
+            todaySchedules.map((s) => (
+              <div key={s.id} className="flex items-center gap-4 py-3 border-b last:border-0">
+                <span className="text-xs font-medium text-muted-foreground w-12 tabular-nums">{s.start_time}</span>
+                <span className="flex-1 text-sm">{s.route_name}</span>
+                <Badge variant="outline" className={statusVariant(s.status)}>
+                  {statusLabel(s.status)}
+                </Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
       </Card>
 
       {complaints.length > 0 && (
-        <Card title="Keluhan Ditugaskan" size="small" loading={loading}>
-          {complaints.map((c) => (
-            <div key={c.id} style={{ padding: '12px 0', borderBottom: '1px solid #F3F4F6' }}>
-              <Text style={{ fontSize: 13 }}>{c.description?.slice(0, 80) || c.category}</Text>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                <Text type="secondary" style={{ fontSize: 11 }}>
-                  SLA: {Math.max(0, 72 - dayjs().diff(dayjs(c.created_at), 'hour'))} jam tersisa
-                </Text>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Keluhan Ditugaskan</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
               </div>
-            </div>
-          ))}
+            ) : (
+              complaints.map((c) => (
+                <div key={c.id} className="py-3 border-b last:border-0">
+                  <p className="text-sm">{c.description?.slice(0, 80) || c.category}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    SLA: {Math.max(0, 72 - dayjs().diff(dayjs(c.created_at), 'hour'))} jam tersisa
+                  </p>
+                </div>
+              ))
+            )}
+          </CardContent>
         </Card>
       )}
     </div>
