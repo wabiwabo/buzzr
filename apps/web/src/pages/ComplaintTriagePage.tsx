@@ -1,34 +1,31 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '@/services/api';
-import { TriageLayout } from '@/components/triage';
-import { FilterSidebar } from '@/components/triage/FilterSidebar';
-import type { TriageRowData } from '@/components/triage/TriageListRow';
-import type { TriagePreviewData } from '@/components/triage/TriagePreview';
-import { useFacetedFilter } from '@/hooks/useFacetedFilter';
-import { useTriageSelection } from '@/hooks/useTriageSelection';
-import { useTriageKeyboard } from '@/hooks/useTriageKeyboard';
-import { useSavedViews } from '@/hooks/useSavedViews';
-import { STATUS_LABELS } from '@/theme/tokens';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { createColumnHelper } from '@tanstack/react-table';
+import dayjs from 'dayjs';
 import { toast } from 'sonner';
+import api from '@/services/api';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
+import type { FilterDef } from '@/components/data-table';
+import { useServerTable } from '@/hooks/useServerTable';
+import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
+import { StatusStepper } from '@/components/triage/StatusStepper';
+import { SlaCountdown } from '@/components/triage/SlaCountdown';
+import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
+import { STATUS_LABELS } from '@/theme/tokens';
 
-// API complaint shape
-interface ApiComplaint {
+interface Complaint {
   id: string;
-  reporter_name: string;
-  reporter_id: string;
   category: string;
-  status: string;
   description: string;
+  status: string;
   address: string;
   latitude: number;
   longitude: number;
-  assigned_to: string | null;
-  assignee_name: string | null;
+  rating: number | null;
   created_at: string;
   resolved_at: string | null;
-  reporter_phone?: string;
-  photos?: string[];
+  reporter_name: string;
+  assignee_name: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -38,273 +35,195 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Lainnya',
 };
 
-const SEVERITY_MAP: Record<string, 'critical' | 'warning' | 'info'> = {
-  illegal_dumping: 'critical',
-  tps_full: 'warning',
-  missed_pickup: 'warning',
-  other: 'info',
-};
+const categoryOptions = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({ value, label }));
+const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
-const FACET_DIMENSIONS = [
-  {
-    key: 'status',
-    label: 'Status',
-    getValue: (item: Record<string, unknown>) => item.status as string,
-  },
-  {
-    key: 'category',
-    label: 'Kategori',
-    getValue: (item: Record<string, unknown>) => item.category as string,
-  },
+const complaintFilterDefs: FilterDef[] = [
+  { key: 'c.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 'c.category', label: 'Kategori', type: 'select', options: categoryOptions },
 ];
 
-const GROUP_BY_OPTIONS = [
-  { value: 'none', label: 'Tidak ada' },
-  { value: 'status', label: 'Status' },
-  { value: 'category', label: 'Kategori' },
-];
-
-const GROUP_CONFIG = {
-  status: {
-    key: 'status',
-    getGroup: (item: TriageRowData & { status?: string }) =>
-      STATUS_LABELS[(item as unknown as Record<string, string>).status] || (item as unknown as Record<string, string>).status,
-  },
-  category: {
-    key: 'category',
-    getGroup: (item: TriageRowData & { category?: string }) =>
-      CATEGORY_LABELS[(item as unknown as Record<string, string>).category] || (item as unknown as Record<string, string>).category,
-  },
-};
-
-const DEFAULT_VIEWS: Array<{ id: string; name: string; filters: Record<string, string[]> }> = [
-  { id: 'all', name: 'Semua', filters: {} },
-  { id: 'triage', name: 'Triage Saya', filters: { status: ['submitted', 'verified'] } },
-  { id: 'sla-critical', name: 'SLA Kritis', filters: {} },
-  { id: 'unassigned', name: 'Belum Ditugaskan', filters: { status: ['verified'] } },
-];
-
-function mapToRowData(complaint: ApiComplaint): TriageRowData & Record<string, unknown> {
-  return {
-    id: complaint.id,
-    title: complaint.description?.slice(0, 80) || 'Tanpa deskripsi',
-    meta: `${CATEGORY_LABELS[complaint.category] || complaint.category} · ${complaint.reporter_name} · ${complaint.address?.slice(0, 40) || ''}`,
-    severity: SEVERITY_MAP[complaint.category] || 'info',
-    createdAt: complaint.created_at,
-    slaHours: 72,
-    assigneeName: complaint.assignee_name || undefined,
-    isUnread: complaint.status === 'submitted',
-    // Extra fields for filtering/grouping
-    status: complaint.status,
-    category: complaint.category,
-  };
-}
-
-function mapToPreviewData(complaint: ApiComplaint): TriagePreviewData {
-  return {
-    id: complaint.id,
-    title: complaint.description?.slice(0, 80) || 'Tanpa deskripsi',
-    description: complaint.description || '',
-    status: complaint.status,
-    category: CATEGORY_LABELS[complaint.category] || complaint.category,
-    reporterName: complaint.reporter_name,
-    reporterPhone: complaint.reporter_phone,
-    address: complaint.address,
-    coordinates: complaint.latitude && complaint.longitude
-      ? { lat: complaint.latitude, lng: complaint.longitude }
-      : undefined,
-    createdAt: complaint.created_at,
-    slaHours: 72,
-    photos: complaint.photos,
-    assigneeName: complaint.assignee_name || undefined,
-    timeline: [
-      {
-        time: complaint.created_at,
-        label: `Dilaporkan oleh ${complaint.reporter_name}`,
-        type: 'created' as const,
-      },
-      ...(complaint.assigned_to
-        ? [{
-            time: complaint.created_at,
-            label: `Ditugaskan ke ${complaint.assignee_name || 'staf'}`,
-            type: 'assigned' as 'assigned',
-          }]
-        : []),
-      ...(complaint.resolved_at
-        ? [{
-            time: complaint.resolved_at,
-            label: complaint.status === 'rejected' ? 'Ditolak' : 'Diselesaikan',
-            type: (complaint.status === 'rejected' ? 'rejected' : 'resolved') as 'resolved',
-          }]
-        : []),
-    ],
-  };
-}
+const columnHelper = createColumnHelper<Complaint>();
 
 export default function ComplaintTriagePage() {
-  const navigate = useNavigate();
-  const searchRef = useRef<HTMLInputElement>(null);
-  const [complaints, setComplaints] = useState<ApiComplaint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [groupBy, setGroupBy] = useState('none');
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
-  // Map API data to row data
-  const rowItems = useMemo(() => complaints.map(mapToRowData), [complaints]);
+  // Ref to hold current searchText so column cell renderers can access it
+  // without forcing column identity changes on every keystroke.
+  const searchTextRef = useRef('');
 
-  // Faceted filter
+  const columns = useMemo(() => [
+    columnHelper.accessor('description', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Deskripsi" />,
+      cell: (info) => (
+        <span className="line-clamp-1 text-sm">
+          <Highlight text={info.getValue()?.slice(0, 80) || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('category', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Kategori" />,
+      cell: (info) => (
+        <Badge variant="outline" className="text-xs">
+          {CATEGORY_LABELS[info.getValue()] || info.getValue()}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor('status', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      cell: (info) => <StatusBadge status={info.getValue()} />,
+    }),
+    columnHelper.accessor('reporter_name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Pelapor" />,
+      cell: (info) => (
+        <span className="text-sm">
+          <Highlight text={info.getValue() || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('address', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Lokasi" />,
+      cell: (info) => (
+        <span className="line-clamp-1 text-sm text-muted-foreground">
+          <Highlight text={info.getValue()?.slice(0, 40) || '-'} query={searchTextRef.current} />
+        </span>
+      ),
+      enableSorting: false,
+    }),
+    columnHelper.accessor('created_at', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Tanggal" />,
+      cell: (info) => (
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {dayjs(info.getValue()).format('DD MMM YY')}
+        </span>
+      ),
+    }),
+    columnHelper.display({
+      id: 'sla',
+      header: 'SLA',
+      cell: ({ row }) => <SlaCountdown createdAt={row.original.created_at} slaHours={72} className="text-xs" />,
+    }),
+  ], []);
+
   const {
-    filtered,
-    facetCounts,
-    search,
-    setSearch,
-    toggleFilter,
-    removeFilter,
-    resetFilters,
-    activeFilters,
-  } = useFacetedFilter({
-    items: rowItems,
-    dimensions: FACET_DIMENSIONS,
-    searchFields: ['title', 'meta'],
+    table, isLoading, meta, searchText, setSearchText,
+    filters, setFilter, resetFilters, activeFilterCount, refetch,
+  } = useServerTable<Complaint>({
+    endpoint: '/complaints',
+    columnDefs: columns,
+    defaultSort: { field: 'c.created_at', order: 'desc' },
+    filterDefs: complaintFilterDefs,
   });
 
-  // Selection
-  const {
-    selectedId,
-    checkedIds,
-    select,
-    selectNext,
-    selectPrev,
-    toggleCheck,
-    checkRange,
-    clearChecked,
-  } = useTriageSelection({
-    items: filtered as TriageRowData[],
-    getId: (item) => item.id,
+  // Keep ref in sync so cell renderers always read the latest value
+  searchTextRef.current = searchText;
+
+  // Keyboard navigation
+  useDataTableKeyboard({
+    table,
+    activeIndex,
+    setActiveIndex,
+    onEnter: (row) => setSelectedComplaint(row),
+    onEscape: () => setSelectedComplaint(null),
   });
-
-  // Saved views
-  const { views, activeViewId, selectView } = useSavedViews('complaints', DEFAULT_VIEWS);
-
-  // Preview data
-  const previewData = useMemo(() => {
-    if (!selectedId) return null;
-    const complaint = complaints.find((c) => c.id === selectedId);
-    return complaint ? mapToPreviewData(complaint) : null;
-  }, [selectedId, complaints]);
-
-  // Fetch complaints
-  const fetchComplaints = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/complaints');
-      setComplaints(res.data);
-    } catch {
-      toast.error('Gagal memuat data pengaduan');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchComplaints();
-  }, [fetchComplaints]);
 
   // Status transition
   const handleStatusTransition = useCallback(async (id: string, newStatus: string) => {
     try {
       await api.patch(`/complaints/${id}/status`, { status: newStatus });
       toast.success(`Status diubah ke ${STATUS_LABELS[newStatus] || newStatus}`);
-      fetchComplaints();
+      refetch();
+      setSelectedComplaint(null);
     } catch {
       toast.error('Gagal mengubah status');
     }
-  }, [fetchComplaints]);
+  }, [refetch]);
 
-  // Assignment
-  const handleAssign = useCallback(async (id: string) => {
-    // TODO: Open assignment dialog with staff list
-    toast.info('Fitur penugasan akan tersedia segera');
-  }, []);
+  const renderPreview = useCallback(() => {
+    if (!selectedComplaint) return null;
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium text-sm">{selectedComplaint.description?.slice(0, 100)}</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Dilaporkan oleh {selectedComplaint.reporter_name} · {dayjs(selectedComplaint.created_at).format('DD MMM YYYY, HH:mm')}
+          </p>
+        </div>
 
-  // Keyboard hooks
-  useTriageKeyboard({
-    onNext: selectNext,
-    onPrev: selectPrev,
-    onTogglePreview: () => {},
-    onOpenDetail: () => {
-      if (selectedId) navigate(`/complaints/${selectedId}`);
-    },
-    onAssign: () => {
-      if (selectedId) handleAssign(selectedId);
-    },
-    onStatusChange: () => {},
-    onResolve: () => {
-      if (selectedId) handleStatusTransition(selectedId, 'resolved');
-    },
-    onReject: () => {
-      if (selectedId) handleStatusTransition(selectedId, 'rejected');
-    },
-    onAddNote: () => {},
-    onCyclePriority: () => {},
-    onFocusSearch: () => searchRef.current?.focus(),
-    onShowHelp: () => setHelpOpen((o) => !o),
-    onToggleSidebar: () => {},
-    onBulkAssign: () => {},
-    onBulkStatus: () => {},
-    onClearSelection: clearChecked,
-  });
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Kategori</span>
+            <Badge variant="outline">{CATEGORY_LABELS[selectedComplaint.category] || selectedComplaint.category}</Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Status</span>
+            <StatusBadge status={selectedComplaint.status} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">SLA</span>
+            <SlaCountdown createdAt={selectedComplaint.created_at} slaHours={72} />
+          </div>
+          {selectedComplaint.address && (
+            <div>
+              <span className="text-xs text-muted-foreground block">Lokasi</span>
+              <span className="text-sm">{selectedComplaint.address}</span>
+            </div>
+          )}
+          {selectedComplaint.assignee_name && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Ditugaskan ke</span>
+              <span className="text-sm">{selectedComplaint.assignee_name}</span>
+            </div>
+          )}
+        </div>
+
+        <StatusStepper
+          currentStatus={selectedComplaint.status}
+          onTransition={(newStatus) => handleStatusTransition(selectedComplaint.id, newStatus)}
+        />
+      </div>
+    );
+  }, [selectedComplaint, handleStatusTransition]);
 
   return (
-    <div className="p-4">
-      <div className="mb-4">
-        <h1 className="text-xl font-semibold">Pengaduan</h1>
-        <p className="text-sm text-muted-foreground">
-          {filtered.length} dari {rowItems.length} pengaduan
-        </p>
-      </div>
+    <PageTransition>
+      <div>
+        <PageHeader
+          title="Pengaduan"
+          description={`${meta.total} pengaduan`}
+          breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Pengaduan' }]}
+        />
 
-      <TriageLayout
-        items={filtered as TriageRowData[]}
-        loading={loading}
-        selectedId={selectedId}
-        checkedIds={checkedIds}
-        onSelect={select}
-        onCheck={toggleCheck}
-        onShiftClick={checkRange}
-        onClearChecked={clearChecked}
-        search={search}
-        onSearchChange={setSearch}
-        searchRef={searchRef}
-        groupBy={groupBy}
-        onGroupByChange={setGroupBy}
-        groupByOptions={GROUP_BY_OPTIONS}
-        groupConfig={GROUP_CONFIG as Record<string, { key: string; getGroup: (item: TriageRowData) => string }>}
-        activeFilters={activeFilters}
-        onRemoveFilter={removeFilter}
-        onRefresh={fetchComplaints}
-        onShowHelp={() => setHelpOpen((o) => !o)}
-        onBulkAssign={() => toast.info('Penugasan massal akan tersedia segera')}
-        onBulkStatus={() => toast.info('Ubah status massal akan tersedia segera')}
-        previewData={previewData}
-        onStatusTransition={handleStatusTransition}
-        onAssign={handleAssign}
-        filterSidebar={
-          <FilterSidebar
-            views={views}
-            activeViewId={activeViewId}
-            onSelectView={selectView}
-            facets={[
-              { key: 'status', label: 'Status', labelMap: STATUS_LABELS },
-              { key: 'category', label: 'Kategori', labelMap: CATEGORY_LABELS },
-            ]}
-            facetCounts={facetCounts}
-            onToggleFilter={toggleFilter}
-            onResetFilters={resetFilters}
-            hasActiveFilters={activeFilters.length > 0}
-          />
-        }
-      />
-    </div>
+        <DataTable
+          table={table}
+          meta={meta}
+          isLoading={isLoading}
+          searchText={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder="Cari deskripsi, lokasi..."
+          filters={filters}
+          onFilterChange={setFilter}
+          onResetFilters={resetFilters}
+          activeFilterCount={activeFilterCount}
+          filterDefs={complaintFilterDefs}
+          filterLabels={{ 'c.status': 'Status', 'c.category': 'Kategori' }}
+          onPageChange={(p) => (table as any)._setPage(p)}
+          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onRefresh={refetch}
+          onRowClick={(r) => setSelectedComplaint(r)}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          previewOpen={!!selectedComplaint}
+          onPreviewClose={() => setSelectedComplaint(null)}
+          renderPreview={renderPreview}
+          previewMode="split"
+          emptyTitle="Tidak ada pengaduan"
+          emptyDescription="Belum ada pengaduan yang masuk"
+        />
+      </div>
+    </PageTransition>
   );
 }
