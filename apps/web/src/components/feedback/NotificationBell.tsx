@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
-import { Badge, Button, Dropdown, Typography, List } from 'antd';
-import { BellOutlined, CheckOutlined } from '@ant-design/icons';
+import { Bell, CheckCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
 import { useNotificationStore } from '../../stores/notification.store';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -9,12 +12,9 @@ import 'dayjs/locale/id';
 dayjs.extend(relativeTime);
 dayjs.locale('id');
 
-const { Text } = Typography;
-
 export const NotificationBell: React.FC = () => {
   const {
-    notifications, unreadCount, loading,
-    fetchNotifications, fetchUnreadCount, markAsRead, markAllAsRead,
+    notifications, unreadCount, fetchNotifications, fetchUnreadCount, markAsRead, markAllAsRead,
   } = useNotificationStore();
 
   useEffect(() => {
@@ -27,87 +27,69 @@ export const NotificationBell: React.FC = () => {
   const unread = notifications.filter((n) => !n.read);
   const read = notifications.filter((n) => n.read);
 
-  const content = (
-    <div style={{ width: 360, maxHeight: 480, overflow: 'auto' }}>
-      <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
-        <Text strong>Notifikasi</Text>
-        {unreadCount > 0 && (
-          <Button type="link" size="small" icon={<CheckOutlined />} onClick={markAllAsRead}>
-            Tandai semua dibaca
-          </Button>
-        )}
-      </div>
-
-      {unread.length > 0 && (
-        <>
-          <div style={{ padding: '8px 16px 4px' }}>
-            <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Baru
-            </Text>
-          </div>
-          <List
-            size="small"
-            dataSource={unread.slice(0, 5)}
-            renderItem={(item) => (
-              <List.Item
-                style={{ padding: '8px 16px', cursor: 'pointer', background: '#f5f8ff' }}
-                onClick={() => markAsRead(item.id)}
-              >
-                <div>
-                  <Text style={{ fontSize: 13 }}>{item.title}</Text>
-                  <br />
-                  <Text type="secondary" style={{ fontSize: 11 }}>
-                    {dayjs(item.created_at).fromNow()}
-                  </Text>
-                </div>
-              </List.Item>
-            )}
-          />
-        </>
-      )}
-
-      {read.length > 0 && (
-        <>
-          <div style={{ padding: '8px 16px 4px' }}>
-            <Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Sebelumnya
-            </Text>
-          </div>
-          <List
-            size="small"
-            dataSource={read.slice(0, 5)}
-            renderItem={(item) => (
-              <List.Item style={{ padding: '8px 16px' }}>
-                <div>
-                  <Text type="secondary" style={{ fontSize: 13 }}>{item.title}</Text>
-                  <br />
-                  <Text type="secondary" style={{ fontSize: 11 }}>
-                    {dayjs(item.created_at).fromNow()}
-                  </Text>
-                </div>
-              </List.Item>
-            )}
-          />
-        </>
-      )}
-
-      {notifications.length === 0 && (
-        <div style={{ padding: 24, textAlign: 'center' }}>
-          <Text type="secondary">Tidak ada notifikasi</Text>
-        </div>
-      )}
-    </div>
-  );
-
   return (
-    <Dropdown
-      dropdownRender={() => content}
-      trigger={['click']}
-      placement="bottomRight"
-    >
-      <Badge count={unreadCount} size="small" offset={[-2, 2]}>
-        <Button type="text" icon={<BellOutlined style={{ fontSize: 18 }} />} />
-      </Badge>
-    </Dropdown>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative h-8 w-8">
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[360px] p-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="text-sm font-medium">Notifikasi</span>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs" onClick={markAllAsRead}>
+              <CheckCheck className="h-3 w-3" />
+              Tandai semua dibaca
+            </Button>
+          )}
+        </div>
+
+        <div className="max-h-[400px] overflow-y-auto">
+          {unread.length > 0 && (
+            <>
+              <div className="px-4 pt-2 pb-1">
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Baru</span>
+              </div>
+              {unread.slice(0, 5).map((item) => (
+                <div
+                  key={item.id}
+                  className="px-4 py-2 cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors"
+                  onClick={() => markAsRead(item.id)}
+                >
+                  <p className="text-sm">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">{dayjs(item.created_at).fromNow()}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          {read.length > 0 && (
+            <>
+              <div className="px-4 pt-2 pb-1">
+                <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Sebelumnya</span>
+              </div>
+              {read.slice(0, 5).map((item) => (
+                <div key={item.id} className="px-4 py-2">
+                  <p className="text-sm text-muted-foreground">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">{dayjs(item.created_at).fromNow()}</p>
+                </div>
+              ))}
+            </>
+          )}
+
+          {notifications.length === 0 && (
+            <div className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Tidak ada notifikasi</p>
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Typography, Progress, Button } from 'antd';
-import { CheckCircleFilled, RightOutlined, CloseOutlined } from '@ant-design/icons';
+import { CheckCircle, ChevronRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const { Text } = Typography;
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export interface ChecklistItem {
   key: string;
@@ -33,28 +33,27 @@ export const ProgressChecklist: React.FC<ProgressChecklistProps> = ({
     return (
       <div
         onClick={() => setExpanded(true)}
-        style={{
-          padding: '8px 16px', cursor: 'pointer', borderTop: '1px solid #F3F4F6',
-          display: 'flex', alignItems: 'center', gap: 8,
-        }}
+        className="flex items-center gap-2 px-4 py-2 border-t cursor-pointer hover:bg-muted/50 transition-colors"
       >
-        <Progress type="circle" percent={pct} size={24} strokeWidth={8} />
-        <Text style={{ fontSize: 12 }}>Setup {completedCount}/{items.length}</Text>
+        <Progress value={pct} className="h-1.5 w-6" />
+        <span className="text-xs">Setup {completedCount}/{items.length}</span>
       </div>
     );
   }
 
   return (
-    <div style={{ borderTop: '1px solid #F3F4F6', padding: '12px 16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <Text strong style={{ fontSize: 13 }}>Setup Awal</Text>
-        <Button type="text" size="small" icon={<CloseOutlined />} onClick={onDismiss} />
+    <div className="border-t px-4 py-3">
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-medium">Setup Awal</span>
+        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={onDismiss}>
+          <X className="h-3 w-3" />
+        </Button>
       </div>
-      <Progress percent={pct} size="small" strokeColor="#2563EB" style={{ marginBottom: 8 }} />
-      <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 8 }}>
+      <Progress value={pct} className="h-1.5 mb-2" />
+      <span className="text-xs text-muted-foreground block mb-2">
         {completedCount} dari {items.length} selesai
-      </Text>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      </span>
+      <div className="flex flex-col gap-1">
         {items.map((item) => (
           <div
             key={item.key}
@@ -62,19 +61,16 @@ export const ProgressChecklist: React.FC<ProgressChecklistProps> = ({
               onItemClick?.(item.key);
               navigate(item.path);
             }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 8px', borderRadius: 6, cursor: 'pointer',
-              background: item.completed ? '#F0FDF4' : 'transparent',
-            }}
+            className={cn(
+              'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors',
+              item.completed ? 'bg-positive/5' : 'hover:bg-muted/50',
+            )}
           >
-            <CheckCircleFilled style={{ color: item.completed ? '#22C55E' : '#D1D5DB', fontSize: 14 }} />
-            <div style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, textDecoration: item.completed ? 'line-through' : 'none' }}>
-                {item.label}
-              </Text>
-            </div>
-            {!item.completed && <RightOutlined style={{ fontSize: 10, color: '#9CA3AF' }} />}
+            <CheckCircle className={cn('h-3.5 w-3.5 shrink-0', item.completed ? 'text-positive' : 'text-muted-foreground/30')} />
+            <span className={cn('text-xs flex-1', item.completed && 'line-through text-muted-foreground')}>
+              {item.label}
+            </span>
+            {!item.completed && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
           </div>
         ))}
       </div>

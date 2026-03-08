@@ -1,17 +1,16 @@
-import React from 'react';
-import { Layout, Menu, Typography, Badge, Input, Avatar, Space, Button } from 'antd';
-import {
-  SearchOutlined, LogoutOutlined,
-} from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Search, LogOut, ChevronDown } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 import { getMenuSections } from '../../config/menu';
 import { usePermission } from '../../hooks/usePermission';
 import { ProgressChecklist } from '../onboarding/ProgressChecklist';
 import type { ChecklistItem } from '../onboarding/ProgressChecklist';
 import type { MenuSection, MenuItem } from '../../config/menu';
-
-const { Sider } = Layout;
-const { Text } = Typography;
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -30,8 +29,6 @@ interface AppSidebarProps {
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   collapsed,
-  onCollapse,
-  onRestartTour,
   userName = 'Admin',
   userRole = '',
   tenantName = 'Buzzr',
@@ -47,125 +44,140 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { can, isSuperAdmin } = usePermission();
 
   const sections = getMenuSections(isSuperAdmin);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const filterByPermission = (item: MenuItem): boolean => {
     if (!item.permission) return true;
     return can(item.permission);
   };
 
-  const buildMenuItems = (sections: MenuSection[]) => {
-    const items: any[] = [];
-
-    sections.forEach((section) => {
-      const visibleItems = section.items.filter(filterByPermission);
-      if (visibleItems.length === 0) return;
-
-      if (section.label) {
-        items.push({
-          type: 'group' as const,
-          label: !collapsed ? (
-            <Text style={{ fontSize: 11, letterSpacing: 1, color: '#9CA3AF', fontWeight: 500 }}>
-              {section.label}
-            </Text>
-          ) : null,
-          children: visibleItems.map(buildItem),
-        });
-      } else {
-        visibleItems.forEach((item) => items.push(buildItem(item)));
-      }
+  const toggleExpand = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
-
-    return items;
   };
 
-  const buildItem = (item: MenuItem): any => {
+  const renderItem = (item: MenuItem) => {
+    const isActive = location.pathname === item.key;
     const badge = item.badge ? badgeCounts[item.badge] : 0;
-    const label = badge && badge > 0 ? (
-      <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        {item.label}
-        <Badge count={badge} size="small" style={{ marginLeft: 8 }} />
-      </span>
-    ) : item.label;
 
     if (item.children) {
-      return {
-        key: item.key,
-        icon: item.icon,
-        label: item.label,
-        children: item.children.filter(filterByPermission).map(buildItem),
-      };
+      const visibleChildren = item.children.filter(filterByPermission);
+      if (visibleChildren.length === 0) return null;
+      const isExpanded = expandedKeys.has(item.key);
+      const hasActiveChild = visibleChildren.some((c) => location.pathname === c.key);
+
+      return (
+        <div key={item.key}>
+          <button
+            onClick={() => toggleExpand(item.key)}
+            className={cn(
+              'flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors',
+              hasActiveChild ? 'text-foreground bg-muted/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+            )}
+          >
+            {item.icon}
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">{item.label}</span>
+                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isExpanded && 'rotate-180')} />
+              </>
+            )}
+          </button>
+          {!collapsed && isExpanded && (
+            <div className="ml-4 pl-3 border-l space-y-0.5 mt-0.5">
+              {visibleChildren.map((child) => renderItem(child))}
+            </div>
+          )}
+        </div>
+      );
     }
 
-    return { key: item.key, icon: item.icon, label };
+    return (
+      <button
+        key={item.key}
+        onClick={() => navigate(item.key)}
+        className={cn(
+          'flex items-center gap-3 w-full px-3 py-2 rounded-md text-sm transition-colors',
+          isActive
+            ? 'text-primary bg-primary/5 font-medium'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+        )}
+      >
+        {item.icon}
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-left">{item.label}</span>
+            {badge && badge > 0 ? (
+              <span className="h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-medium flex items-center justify-center">
+                {badge}
+              </span>
+            ) : null}
+          </>
+        )}
+      </button>
+    );
   };
 
-  const menuItems = buildMenuItems(sections);
+  const renderSection = (section: MenuSection) => {
+    const visibleItems = section.items.filter(filterByPermission);
+    if (visibleItems.length === 0) return null;
+
+    return (
+      <div key={section.key} className="mb-2">
+        {section.label && !collapsed && (
+          <div className="px-3 py-2">
+            <span className="text-[11px] font-medium text-muted-foreground tracking-wider">
+              {section.label}
+            </span>
+          </div>
+        )}
+        <div className="space-y-0.5 px-2">
+          {visibleItems.map((item) => renderItem(item))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <Sider
-      collapsible
-      collapsed={collapsed}
-      onCollapse={onCollapse}
-      breakpoint="lg"
-      theme="light"
-      width={240}
-      collapsedWidth={64}
-      style={{
-        overflow: 'auto',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        zIndex: 100,
-        borderRight: '1px solid #E5E7EB',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 z-[100] flex flex-col border-r bg-background transition-[width] duration-200',
+        collapsed ? 'w-16' : 'w-60',
+      )}
     >
-      {/* Logo + Tenant */}
-      <div style={{ padding: collapsed ? '16px 8px' : '16px 20px', borderBottom: '1px solid #F3F4F6' }}>
-        <Text strong style={{ fontSize: collapsed ? 18 : 20, letterSpacing: 1, color: '#1F2937' }}>
+      {/* Logo */}
+      <div className={cn('border-b', collapsed ? 'px-2 py-4' : 'px-5 py-4')}>
+        <span className="text-lg font-bold tracking-wide">
           {collapsed ? 'B' : 'Buzzr'}
-        </Text>
+        </span>
         {!collapsed && (
-          <Text style={{ display: 'block', fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>
-            {tenantName}
-          </Text>
+          <span className="block text-xs text-muted-foreground mt-0.5">{tenantName}</span>
         )}
       </div>
 
-      {/* Inline Search */}
+      {/* Search */}
       {!collapsed && (
-        <div style={{ padding: '12px 16px 4px' }}>
-          <Input
-            placeholder="Cari..."
-            prefix={<SearchOutlined style={{ color: '#9CA3AF' }} />}
-            suffix={<Text type="secondary" style={{ fontSize: 11 }}>/</Text>}
-            id="global-search-input"
-            style={{ borderRadius: 8, background: '#F9FAFB' }}
-            size="small"
-          />
+        <div className="px-4 pt-3 pb-1">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Cari..."
+              id="global-search-input"
+              className="pl-8 h-8 text-sm bg-muted/30"
+            />
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">/</span>
+          </div>
         </div>
       )}
 
       {/* Menu */}
-      <div style={{ flex: 1, overflow: 'auto', paddingTop: 8 }}>
-        <Menu
-          theme="light"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems as any}
-          onClick={({ key }) => {
-            if (key === 'tour') {
-              onRestartTour?.();
-              return;
-            }
-            navigate(key);
-          }}
-          style={{ border: 'none' }}
-        />
-      </div>
+      <ScrollArea className="flex-1 pt-2">
+        {sections.map((section) => renderSection(section))}
+      </ScrollArea>
 
       {/* Onboarding Checklist */}
       {checklistItems && !checklistDismissed && !collapsed && (
@@ -176,36 +188,33 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         />
       )}
 
-      {/* User Card at Bottom */}
-      <div style={{
-        padding: collapsed ? '12px 8px' : '12px 16px',
-        borderTop: '1px solid #F3F4F6',
-      }}>
+      {/* User Card */}
+      <div className={cn('border-t', collapsed ? 'px-2 py-3' : 'px-4 py-3')}>
         {collapsed ? (
-          <div style={{ textAlign: 'center' }}>
-            <Avatar size={32} style={{ background: '#2563EB', cursor: 'pointer' }}>
-              {userName.charAt(0)}
+          <div className="flex justify-center">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {userName.charAt(0)}
+              </AvatarFallback>
             </Avatar>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Avatar size={32} style={{ background: '#2563EB', flexShrink: 0 }}>
-              {userName.charAt(0)}
+          <div className="flex items-center gap-2.5">
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {userName.charAt(0)}
+              </AvatarFallback>
             </Avatar>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 13, display: 'block', fontWeight: 500 }} ellipsis>
-                {userName}
-              </Text>
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {userRole}
-              </Text>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{userName}</p>
+              <p className="text-xs text-muted-foreground">{userRole}</p>
             </div>
-            <Space size={4}>
-              <Button type="text" size="small" icon={<LogoutOutlined />} onClick={onLogout} />
-            </Space>
+            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onLogout}>
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
           </div>
         )}
       </div>
-    </Sider>
+    </aside>
   );
 };

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal, Typography, Space } from 'antd';
-
-const { Text } = Typography;
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 interface KeyboardShortcutsProps {
   open: boolean;
@@ -21,45 +21,32 @@ const shortcuts = [
 ];
 
 const Kbd: React.FC<{ children: string }> = ({ children }) => (
-  <span
-    style={{
-      display: 'inline-block',
-      padding: '2px 8px',
-      background: '#f5f5f5',
-      border: '1px solid #d9d9d9',
-      borderRadius: 4,
-      fontFamily: 'monospace',
-      fontSize: 12,
-      lineHeight: '20px',
-      boxShadow: '0 1px 0 rgba(0,0,0,0.1)',
-    }}
-  >
+  <span className="inline-block px-2 py-0.5 bg-muted border rounded text-xs font-mono leading-5 shadow-[0_1px_0_rgba(0,0,0,0.1)]">
     {children}
   </span>
 );
 
 export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({ open, onClose }) => (
-  <Modal
-    title="Keyboard Shortcuts"
-    open={open}
-    onCancel={onClose}
-    footer={null}
-    width={400}
-  >
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {shortcuts.map((s, i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text>{s.description}</Text>
-          <Space size={4}>
-            {s.keys.split(' → ').map((k, j) => (
-              <React.Fragment key={j}>
-                {j > 0 && <Text type="secondary" style={{ fontSize: 11 }}>lalu</Text>}
-                <Kbd>{k}</Kbd>
-              </React.Fragment>
-            ))}
-          </Space>
-        </div>
-      ))}
-    </div>
-  </Modal>
+  <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <DialogContent className="sm:max-w-[400px]">
+      <DialogHeader>
+        <DialogTitle>Keyboard Shortcuts</DialogTitle>
+      </DialogHeader>
+      <div className="flex flex-col gap-3">
+        {shortcuts.map((s, i) => (
+          <div key={i} className="flex justify-between items-center">
+            <span className="text-sm">{s.description}</span>
+            <div className="flex items-center gap-1">
+              {s.keys.split(' → ').map((k, j) => (
+                <React.Fragment key={j}>
+                  {j > 0 && <span className="text-xs text-muted-foreground">lalu</span>}
+                  <Kbd>{k}</Kbd>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </DialogContent>
+  </Dialog>
 );
