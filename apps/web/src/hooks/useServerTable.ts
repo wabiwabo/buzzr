@@ -19,8 +19,8 @@ interface UseServerTableOptions<T> {
   defaultSort?: { field: string; order: 'asc' | 'desc' };
   defaultLimit?: number;
   filterDefs?: FilterDef[];
-  /** Fields to highlight in UI (not sent to server) */
-  searchFields?: string[];
+  /** Maps frontend column accessor IDs to backend SQL column names for sorting */
+  columnMap?: Record<string, string>;
   /** Transform raw API data before passing to table */
   transformData?: (data: any[]) => T[];
 }
@@ -37,6 +37,8 @@ interface UseServerTableReturn<T> {
   resetFilters: () => void;
   activeFilterCount: number;
   refetch: () => void;
+  setPage: (page: number) => void;
+  setLimit: (limit: number) => void;
   columnVisibility: VisibilityState;
   setColumnVisibility: (state: VisibilityState) => void;
 }
@@ -48,6 +50,7 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     defaultSort = { field: 'created_at', order: 'desc' as const },
     defaultLimit = 25,
     filterDefs = [],
+    columnMap = {},
     transformData,
   } = options;
 
@@ -73,6 +76,10 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     setSearchTextImmediate(text);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => setDebouncedSearch(text), 300);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
   }, []);
 
   // Filters from URL
@@ -105,6 +112,14 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
   const page = Number(searchParams.get('page')) || 1;
   const limit = Number(searchParams.get('limit')) || defaultLimit;
 
+  // Resolve sorting column ID to backend SQL column name via columnMap
+  const resolvedSortCol = sorting[0]
+    ? (columnMap[sorting[0].id] || sorting[0].id)
+    : defaultSort.field;
+  const resolvedSortDir = sorting[0]
+    ? (sorting[0].desc ? 'desc' : 'asc')
+    : defaultSort.order;
+
   // Sync state to URL
   useEffect(() => {
     const params = new URLSearchParams();
@@ -124,10 +139,8 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     setIsLoading(true);
     try {
       const params: Record<string, any> = { page, limit };
-      if (sorting[0]) {
-        params.sort = sorting[0].id;
-        params.order = sorting[0].desc ? 'desc' : 'asc';
-      }
+      params.sort = resolvedSortCol;
+      params.order = resolvedSortDir;
       if (debouncedSearch) params.search = debouncedSearch;
       if (Object.keys(filters).length > 0) params.filters = JSON.stringify(filters);
 
@@ -141,7 +154,7 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     } finally {
       setIsLoading(false);
     }
-  }, [endpoint, page, limit, sorting, debouncedSearch, filters, transformData]);
+  }, [endpoint, page, limit, resolvedSortCol, resolvedSortDir, debouncedSearch, filters, transformData]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -191,11 +204,6 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     getRowId: (row: any) => row.id,
   });
 
-  // Attach page/limit setters to table for pagination component
-  (table as any)._setPage = setPage;
-  (table as any)._setLimit = setLimit;
-  (table as any)._meta = meta;
-
   return {
     table,
     data,
@@ -208,6 +216,8 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     resetFilters,
     activeFilterCount,
     refetch: fetchData,
+    setPage,
+    setLimit,
     columnVisibility,
     setColumnVisibility,
   };

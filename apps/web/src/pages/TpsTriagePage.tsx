@@ -34,8 +34,8 @@ const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value
 const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
 const tpsFilterDefs: FilterDef[] = [
-  { key: 'tp.status', label: 'Status', type: 'select', options: statusOptions },
-  { key: 'tp.type', label: 'Tipe', type: 'select', options: typeOptions },
+  { key: 'status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 'type', label: 'Tipe', type: 'select', options: typeOptions },
 ];
 
 const columnHelper = createColumnHelper<Tps>();
@@ -97,11 +97,11 @@ export default function TpsTriagePage() {
 
   const {
     table, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<Tps>({
     endpoint: '/tps',
     columnDefs: columns,
-    defaultSort: { field: 'tp.name', order: 'asc' },
+    defaultSort: { field: 'name', order: 'asc' },
     filterDefs: tpsFilterDefs,
   });
 
@@ -186,9 +186,9 @@ export default function TpsTriagePage() {
           onResetFilters={resetFilters}
           activeFilterCount={activeFilterCount}
           filterDefs={tpsFilterDefs}
-          filterLabels={{ 'tp.status': 'Status', 'tp.type': 'Tipe' }}
-          onPageChange={(p) => (table as any)._setPage(p)}
-          onLimitChange={(l) => (table as any)._setLimit(l)}
+          filterLabels={{ status: 'Status', type: 'Tipe' }}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
           onRefresh={refetch}
           onRowClick={(r) => setSelectedTps(r)}
           activeIndex={activeIndex}

@@ -110,12 +110,13 @@ export default function ComplaintTriagePage() {
 
   const {
     table, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<Complaint>({
     endpoint: '/complaints',
     columnDefs: columns,
     defaultSort: { field: 'c.created_at', order: 'desc' },
     filterDefs: complaintFilterDefs,
+    columnMap: { category: 'c.category', status: 'c.status', created_at: 'c.created_at' },
   });
 
   // Keep ref in sync so cell renderers always read the latest value
@@ -210,8 +211,8 @@ export default function ComplaintTriagePage() {
           activeFilterCount={activeFilterCount}
           filterDefs={complaintFilterDefs}
           filterLabels={{ 'c.status': 'Status', 'c.category': 'Kategori' }}
-          onPageChange={(p) => (table as any)._setPage(p)}
-          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
           onRefresh={refetch}
           onRowClick={(r) => setSelectedComplaint(r)}
           activeIndex={activeIndex}

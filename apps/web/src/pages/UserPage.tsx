@@ -154,7 +154,7 @@ const UserPage: React.FC = () => {
 
   const {
     table, data, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<User>({
     endpoint: '/users',
     columnDefs,
@@ -198,8 +198,8 @@ const UserPage: React.FC = () => {
         activeFilterCount={activeFilterCount}
         filterDefs={userFilterDefs}
         filterLabels={{ role: 'Peran' }}
-        onPageChange={(p) => (table as any)._setPage(p)}
-        onLimitChange={(l) => (table as any)._setLimit(l)}
+        onPageChange={setPage}
+        onLimitChange={setLimit}
         onRefresh={refetch}
         onRowClick={(r) => setDrawerRecord(r)}
         emptyTitle="Tidak ada pengguna"

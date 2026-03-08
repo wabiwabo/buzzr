@@ -78,12 +78,13 @@ export default function FleetTriagePage() {
 
   const {
     table, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<Vehicle>({
     endpoint: '/fleet',
     columnDefs: columns,
     defaultSort: { field: 'v.plate_number', order: 'asc' },
     filterDefs: fleetFilterDefs,
+    columnMap: { plate_number: 'v.plate_number', type: 'v.type', status: 'v.status', created_at: 'v.created_at' },
   });
 
   searchTextRef.current = searchText;
@@ -147,8 +148,8 @@ export default function FleetTriagePage() {
           activeFilterCount={activeFilterCount}
           filterDefs={fleetFilterDefs}
           filterLabels={{ 'v.status': 'Status', 'v.type': 'Tipe' }}
-          onPageChange={(p) => (table as any)._setPage(p)}
-          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
           onRefresh={refetch}
           onRowClick={(r) => setSelectedVehicle(r)}
           activeIndex={activeIndex}

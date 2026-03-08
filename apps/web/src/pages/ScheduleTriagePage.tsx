@@ -99,12 +99,13 @@ export default function ScheduleTriagePage() {
 
   const {
     table, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<Schedule>({
     endpoint: '/schedules',
     columnDefs: columns,
     defaultSort: { field: 's.start_time', order: 'asc' },
     filterDefs: scheduleFilterDefs,
+    columnMap: { route_name: 's.route_name', schedule_type: 's.schedule_type', status: 's.status', start_time: 's.start_time', created_at: 's.created_at' },
   });
 
   searchTextRef.current = searchText;
@@ -182,8 +183,8 @@ export default function ScheduleTriagePage() {
           activeFilterCount={activeFilterCount}
           filterDefs={scheduleFilterDefs}
           filterLabels={{ 's.status': 'Status', 's.schedule_type': 'Tipe' }}
-          onPageChange={(p) => (table as any)._setPage(p)}
-          onLimitChange={(l) => (table as any)._setLimit(l)}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
           onRefresh={refetch}
           onRowClick={(r) => setSelectedSchedule(r)}
           activeIndex={activeIndex}

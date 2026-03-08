@@ -37,8 +37,8 @@ const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value
 const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
 const paymentFilterDefs: FilterDef[] = [
-  { key: 'p.status', label: 'Status', type: 'select', options: statusOptions },
-  { key: 'p.type', label: 'Tipe', type: 'select', options: typeOptions },
+  { key: 't.status', label: 'Status', type: 'select', options: statusOptions },
+  { key: 't.type', label: 'Tipe', type: 'select', options: typeOptions },
 ];
 
 const columnHelper = createColumnHelper<Payment>();
@@ -97,12 +97,13 @@ export default function PaymentTriagePage() {
 
   const {
     table, isLoading, meta, searchText, setSearchText,
-    filters, setFilter, resetFilters, activeFilterCount, refetch,
+    filters, setFilter, resetFilters, activeFilterCount, refetch, setPage, setLimit,
   } = useServerTable<Payment>({
     endpoint: '/payments',
     columnDefs: columns,
-    defaultSort: { field: 'p.created_at', order: 'desc' },
+    defaultSort: { field: 't.created_at', order: 'desc' },
     filterDefs: paymentFilterDefs,
+    columnMap: { type: 't.type', amount: 't.amount', status: 't.status', created_at: 't.created_at' },
   });
 
   searchTextRef.current = searchText;
@@ -172,9 +173,9 @@ export default function PaymentTriagePage() {
           onResetFilters={resetFilters}
           activeFilterCount={activeFilterCount}
           filterDefs={paymentFilterDefs}
-          filterLabels={{ 'p.status': 'Status', 'p.type': 'Tipe' }}
-          onPageChange={(p) => (table as any)._setPage(p)}
-          onLimitChange={(l) => (table as any)._setLimit(l)}
+          filterLabels={{ 't.status': 'Status', 't.type': 'Tipe' }}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
           onRefresh={refetch}
           onRowClick={(r) => setSelectedPayment(r)}
           activeIndex={activeIndex}
