@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Select, Button, Space, Dropdown, Tabs, Tag, Typography, message } from 'antd';
+import { Form, Select, Button, Space, Dropdown, Tabs, Tag, Typography, message } from 'antd';
 import { EyeOutlined, MoreOutlined, UserAddOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { PageHeader, StatusBadge, InfoTooltip } from '../components/common';
+import { PageHeader, StatusBadge, InfoTooltip, QuickAction } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -38,11 +38,9 @@ const SLA_HOURS = 72;
 const ComplaintPage: React.FC = () => {
   const tableState = useTableState<Complaint>({ searchFields: ['reporter_name', 'address', 'description'] });
   const [activeTab, setActiveTab] = useState('all');
-  const [assignModal, setAssignModal] = useState<Complaint | null>(null);
   const [drawerRecord, setDrawerRecord] = useState<Complaint | null>(null);
   const [staffList, setStaffList] = useState<{ id: string; name: string; role: string }[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [assignForm] = Form.useForm();
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
 
   const fetchData = async (status?: string) => {
     tableState.setLoading(true);
@@ -69,19 +67,6 @@ const ComplaintPage: React.FC = () => {
   const handleTabChange = (key: string) => {
     setActiveTab(key);
     fetchData(key);
-  };
-
-  const handleAssign = async (values: any) => {
-    if (!assignModal) return;
-    setSubmitting(true);
-    try {
-      await api.patch(`/complaints/${assignModal.id}/assign`, { assigneeId: values.assignee_id });
-      message.success('Laporan berhasil ditugaskan');
-      setAssignModal(null);
-      assignForm.resetFields();
-      fetchData(activeTab);
-    } catch { message.error('Gagal menugaskan'); }
-    setSubmitting(false);
   };
 
   const handleStatusChange = async (id: string, status: string) => {
@@ -123,7 +108,31 @@ const ComplaintPage: React.FC = () => {
         <Dropdown menu={{
           items: [
             { key: 'view', icon: <EyeOutlined />, label: 'Detail', onClick: () => setDrawerRecord(record) },
-            { key: 'assign', icon: <UserAddOutlined />, label: 'Assign', onClick: () => setAssignModal(record) },
+            {
+              key: 'assign', icon: <UserAddOutlined />,
+              label: (
+                <QuickAction
+                  title="Assign Petugas"
+                  trigger={<span>Assign</span>}
+                  onConfirm={async () => {
+                    if (!selectedStaff) return;
+                    await api.patch(`/complaints/${record.id}/assign`, { assigneeId: selectedStaff });
+                    message.success('Laporan berhasil ditugaskan');
+                    setSelectedStaff('');
+                    fetchData(activeTab);
+                  }}
+                >
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder="Pilih petugas..."
+                    style={{ width: '100%' }}
+                    options={staffList.map((s) => ({ label: `${s.name} (${s.role})`, value: s.id }))}
+                    onChange={setSelectedStaff}
+                  />
+                </QuickAction>
+              ),
+            },
             ...(!['resolved', 'rejected'].includes(record.status) ? [
               { key: 'resolve', icon: <CheckOutlined />, label: 'Selesaikan', onClick: () => handleStatusChange(record.id, 'resolved') },
             ] : []),
@@ -179,21 +188,6 @@ const ComplaintPage: React.FC = () => {
         emptyDescription="Semua beres! Tidak ada laporan masuk."
       />
 
-      <Modal title="Assign Laporan" open={!!assignModal} onCancel={() => { setAssignModal(null); assignForm.resetFields(); }} footer={null}>
-        <Form form={assignForm} layout="vertical" onFinish={handleAssign}>
-          <Form.Item name="assignee_id" label="Pilih Petugas" rules={[{ required: true }]}>
-            <Select showSearch optionFilterProp="label"
-              placeholder="Cari nama petugas..."
-              options={staffList.map((s) => ({ label: `${s.name} (${s.role})`, value: s.id }))}
-            />
-          </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setAssignModal(null); assignForm.resetFields(); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Tugaskan</Button>
-          </div>
-        </Form>
-      </Modal>
-
       <DetailDrawer
         open={!!drawerRecord}
         onClose={() => setDrawerRecord(null)}
@@ -210,7 +204,6 @@ const ComplaintPage: React.FC = () => {
         ] : []}
         actions={drawerRecord && !['resolved', 'rejected'].includes(drawerRecord.status) && (
           <Space>
-            <Button onClick={() => { setDrawerRecord(null); setAssignModal(drawerRecord); }}>Assign</Button>
             <Button type="primary" onClick={() => { handleStatusChange(drawerRecord.id, 'resolved'); setDrawerRecord(null); }}>Selesaikan</Button>
           </Space>
         )}

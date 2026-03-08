@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, Button, Space, Dropdown, Tag, Checkbox, InputNumber, message } from 'antd';
+import { Form, Input, Select, Button, Space, Dropdown, Tag, Checkbox, InputNumber, message } from 'antd';
 import { EyeOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge } from '../components/common';
+import { PageHeader, StatusBadge, StepWizard } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -120,41 +120,61 @@ const SchedulePage: React.FC = () => {
         onEmptyAction={() => setModalOpen(true)}
       />
 
-      <Modal title="Tambah Jadwal" open={modalOpen} onCancel={() => { setModalOpen(false); form.resetFields(); }} footer={null} width={560}>
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="routeName" label="Nama Rute" rules={[{ required: true }]}>
-            <Input placeholder="Contoh: Rute Bandung Utara" />
-          </Form.Item>
-          <Space style={{ width: '100%' }} size={16}>
-            <Form.Item name="vehicleId" label="ID Kendaraan" rules={[{ required: true }]} style={{ flex: 1 }}>
-              <Input placeholder="UUID kendaraan" />
-            </Form.Item>
-            <Form.Item name="driverId" label="ID Driver" rules={[{ required: true }]} style={{ flex: 1 }}>
-              <Input placeholder="UUID driver" />
-            </Form.Item>
-          </Space>
-          <Form.Item name="scheduleType" label="Tipe Jadwal" rules={[{ required: true }]}>
-            <Select options={[
-              { label: 'Rutin', value: 'recurring' }, { label: 'On-Demand', value: 'on_demand' },
-            ]} />
-          </Form.Item>
-          <Form.Item name="recurringDays" label="Hari (untuk Rutin)">
-            <Checkbox.Group options={dayOptions} />
-          </Form.Item>
-          <Space style={{ width: '100%' }} size={16}>
-            <Form.Item name="scheduledDate" label="Tanggal (On-Demand)" style={{ flex: 1 }}>
-              <Input placeholder="YYYY-MM-DD" />
-            </Form.Item>
-            <Form.Item name="startTime" label="Jam Mulai" rules={[{ required: true }]} style={{ flex: 1 }}>
-              <Input placeholder="HH:MM" />
-            </Form.Item>
-          </Space>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
-          </div>
-        </Form>
-      </Modal>
+      <Form form={form} layout="vertical" onFinish={handleCreate}>
+        <StepWizard
+          open={modalOpen}
+          onClose={() => { setModalOpen(false); form.resetFields(); }}
+          title="Buat Jadwal Pengangkutan"
+          onComplete={() => form.submit()}
+          loading={submitting}
+          steps={[
+            {
+              title: 'Informasi Rute',
+              content: (
+                <>
+                  <Form.Item name="routeName" label="Nama Rute" rules={[{ required: true }]}>
+                    <Input placeholder="Contoh: Rute Bandung Utara" />
+                  </Form.Item>
+                  <Form.Item name="scheduleType" label="Tipe Jadwal" rules={[{ required: true }]}>
+                    <Select options={[
+                      { label: 'Rutin', value: 'recurring' }, { label: 'On-Demand', value: 'on_demand' },
+                    ]} />
+                  </Form.Item>
+                </>
+              ),
+            },
+            {
+              title: 'Driver & Kendaraan',
+              content: (
+                <>
+                  <Form.Item name="driverId" label="ID Driver" rules={[{ required: true }]}>
+                    <Input placeholder="UUID driver" />
+                  </Form.Item>
+                  <Form.Item name="vehicleId" label="ID Kendaraan" rules={[{ required: true }]}>
+                    <Input placeholder="UUID kendaraan" />
+                  </Form.Item>
+                </>
+              ),
+            },
+            {
+              title: 'Jadwal',
+              content: (
+                <>
+                  <Form.Item name="recurringDays" label="Hari (untuk Rutin)">
+                    <Checkbox.Group options={dayOptions} />
+                  </Form.Item>
+                  <Form.Item name="scheduledDate" label="Tanggal (On-Demand)">
+                    <Input placeholder="YYYY-MM-DD" />
+                  </Form.Item>
+                  <Form.Item name="startTime" label="Jam Mulai" rules={[{ required: true }]}>
+                    <Input placeholder="HH:MM" />
+                  </Form.Item>
+                </>
+              ),
+            },
+          ]}
+        />
+      </Form>
 
       <DetailDrawer
         open={!!drawerRecord}

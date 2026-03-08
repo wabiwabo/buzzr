@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, Button, Tabs, Tag, message } from 'antd';
+import { Form, Input, Select, Button, Tabs, Tag, message } from 'antd';
 import { EyeOutlined, MoreOutlined } from '@ant-design/icons';
 import { Dropdown } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { PageHeader, StatusBadge } from '../components/common';
+import { PageHeader, StatusBadge, SlideOver, VisualSelector } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 
@@ -138,14 +138,34 @@ const UserPage: React.FC = () => {
         onEmptyAction={() => setModalOpen(true)}
       />
 
-      <Modal title="Tambah Pengguna" open={modalOpen} onCancel={() => { setModalOpen(false); setSelectedRole(undefined); form.resetFields(); }} footer={null}>
+      <SlideOver
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setSelectedRole(undefined); form.resetFields(); }}
+        title="Tambah Pengguna"
+        footer={
+          <>
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); setSelectedRole(undefined); }}>Batal</Button>
+            <Button type="primary" onClick={() => form.submit()} loading={submitting}>Simpan</Button>
+          </>
+        }
+      >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item name="name" label="Nama" rules={[{ required: true, min: 2 }]}>
             <Input placeholder="Nama lengkap" />
           </Form.Item>
-          <Form.Item name="role" label="Role" rules={[{ required: true }]}>
-            <Select onChange={(v: string) => setSelectedRole(v)}
-              options={Object.entries(roleLabels).map(([key, label]) => ({ label, value: key }))}
+          <Form.Item name="role" label="Peran" rules={[{ required: true }]}>
+            <VisualSelector
+              options={[
+                { value: 'dlh_admin', label: 'Admin DLH', description: 'Kelola semua operasional' },
+                { value: 'tps_operator', label: 'Operator TPS', description: 'Catat sampah masuk/keluar' },
+                { value: 'driver', label: 'Driver', description: 'Angkut sampah' },
+                { value: 'sweeper', label: 'Penyapu', description: 'Bersihkan area' },
+                { value: 'collector', label: 'Pengumpul', description: 'Kumpulkan sampah warga' },
+                { value: 'tpst_operator', label: 'Operator TPST', description: 'Operasikan fasilitas TPST' },
+                { value: 'citizen', label: 'Warga', description: 'Laporkan keluhan' },
+              ]}
+              value={selectedRole}
+              onChange={(v) => { setSelectedRole(v as string); form.setFieldsValue({ role: v }); }}
             />
           </Form.Item>
           {selectedRole && PASSWORD_ROLES.includes(selectedRole) && (
@@ -166,12 +186,8 @@ const UserPage: React.FC = () => {
           <Form.Item name="areaId" label="Area ID">
             <Input placeholder="UUID area (opsional)" />
           </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); setSelectedRole(undefined); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
-          </div>
         </Form>
-      </Modal>
+      </SlideOver>
 
       <DetailDrawer
         open={!!drawerRecord}

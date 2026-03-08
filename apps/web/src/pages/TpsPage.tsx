@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Progress, Button, Space, Dropdown, message } from 'antd';
+import { Form, Input, InputNumber, Select, Progress, Button, Space, Dropdown, message } from 'antd';
 import { EditOutlined, EyeOutlined, MoreOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge, InfoTooltip } from '../components/common';
+import { PageHeader, StatusBadge, InfoTooltip, SlideOver } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -151,12 +151,17 @@ const TpsPage: React.FC = () => {
         }}
       />
 
-      <Modal
-        title="Tambah TPS Baru"
+      <SlideOver
         open={modalOpen}
-        onCancel={() => { setModalOpen(false); form.resetFields(); }}
-        footer={null}
-        width={560}
+        onClose={() => { setModalOpen(false); form.resetFields(); }}
+        title="Tambah TPS Baru"
+        width={520}
+        footer={
+          <>
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
+            <Button type="primary" onClick={() => form.submit()} loading={submitting}>Simpan</Button>
+          </>
+        }
       >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
           <div style={{ marginBottom: 16 }}>
@@ -193,13 +198,8 @@ const TpsPage: React.FC = () => {
           <Form.Item name="area_id" label="Area ID" rules={[{ required: true }]}>
             <Input placeholder="UUID area" />
           </Form.Item>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
-          </div>
         </Form>
-      </Modal>
+      </SlideOver>
 
       <DetailDrawer
         open={!!drawerRecord}

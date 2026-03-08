@@ -145,8 +145,8 @@ const PaymentPage: React.FC = () => {
         ]}
         onRefresh={fetchData}
         onRowClick={(r) => setDrawerRecord(r)}
-        emptyTitle="Tidak ada pembayaran"
-        emptyDescription="Belum ada data pembayaran untuk periode ini"
+        emptyTitle="Belum ada data retribusi"
+        emptyDescription="Data retribusi akan muncul setelah pembayaran pertama tercatat di sistem."
       />
 
       <DetailDrawer
