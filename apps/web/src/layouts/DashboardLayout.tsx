@@ -9,20 +9,27 @@ import { OnboardingTour } from '../components/feedback/OnboardingTour';
 import { KeyboardShortcuts } from '../components/feedback/KeyboardShortcuts';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { useNotificationStore } from '../stores/notification.store';
 
 const { Content } = Layout;
+
+const ROLE_LABELS: Record<string, string> = {
+  citizen: 'Warga', sweeper: 'Penyapu', tps_operator: 'Operator TPS',
+  collector: 'Pengumpul', driver: 'Driver', tpst_operator: 'Operator TPST',
+  dlh_admin: 'Admin DLH', super_admin: 'Super Admin',
+};
 
 const DashboardLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
   const { tourOpen, completeTour, restartTour } = useOnboarding();
+  const { unreadCount } = useNotificationStore();
   const navigate = useNavigate();
 
   const sidebarRef = useRef<HTMLElement>(null);
   const dashboardRef = useRef<HTMLElement>(null);
   const notificationBellRef = useRef<HTMLElement>(null);
-  const globalSearchRef = useRef<HTMLElement>(null);
 
   const pendingGRef = useRef(false);
 
@@ -46,62 +53,15 @@ const DashboardLayout: React.FC = () => {
         key: 'g',
         handler: () => {
           pendingGRef.current = true;
-          setTimeout(() => {
-            pendingGRef.current = false;
-          }, 1000);
+          setTimeout(() => { pendingGRef.current = false; }, 1000);
         },
         description: 'Go-to prefix',
       },
-      {
-        key: 'd',
-        handler: () => {
-          if (pendingGRef.current) {
-            pendingGRef.current = false;
-            navigate('/');
-          }
-        },
-        description: 'Ke Dashboard',
-      },
-      {
-        key: 't',
-        handler: () => {
-          if (pendingGRef.current) {
-            pendingGRef.current = false;
-            navigate('/tps');
-          }
-        },
-        description: 'Ke TPS',
-      },
-      {
-        key: 'c',
-        handler: () => {
-          if (pendingGRef.current) {
-            pendingGRef.current = false;
-            navigate('/complaints');
-          }
-        },
-        description: 'Ke Laporan Warga',
-      },
-      {
-        key: 'f',
-        handler: () => {
-          if (pendingGRef.current) {
-            pendingGRef.current = false;
-            navigate('/fleet');
-          }
-        },
-        description: 'Ke Armada',
-      },
-      {
-        key: 'p',
-        handler: () => {
-          if (pendingGRef.current) {
-            pendingGRef.current = false;
-            navigate('/payments');
-          }
-        },
-        description: 'Ke Pembayaran',
-      },
+      { key: 'd', handler: () => { if (pendingGRef.current) { pendingGRef.current = false; navigate('/'); } }, description: 'Ke Dashboard' },
+      { key: 't', handler: () => { if (pendingGRef.current) { pendingGRef.current = false; navigate('/tps'); } }, description: 'Ke TPS' },
+      { key: 'c', handler: () => { if (pendingGRef.current) { pendingGRef.current = false; navigate('/complaints'); } }, description: 'Ke Laporan Warga' },
+      { key: 'f', handler: () => { if (pendingGRef.current) { pendingGRef.current = false; navigate('/fleet'); } }, description: 'Ke Armada' },
+      { key: 'p', handler: () => { if (pendingGRef.current) { pendingGRef.current = false; navigate('/payments'); } }, description: 'Ke Pembayaran' },
     ],
     [navigate],
   );
@@ -110,8 +70,7 @@ const DashboardLayout: React.FC = () => {
 
   if (!isAuthenticated) return <Navigate to="/login" />;
 
-  const siderWidth = collapsed ? 80 : 200;
-  const isSuperAdmin = user?.role === 'super_admin';
+  const siderWidth = collapsed ? 64 : 240;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -119,8 +78,12 @@ const DashboardLayout: React.FC = () => {
         <AppSidebar
           collapsed={collapsed}
           onCollapse={setCollapsed}
-          isSuperAdmin={isSuperAdmin}
           onRestartTour={restartTour}
+          userName={user?.name || 'Admin'}
+          userRole={ROLE_LABELS[user?.role || ''] || user?.role || ''}
+          tenantName="DLH Kota Bandung"
+          onLogout={logout}
+          badgeCounts={{ pendingComplaints: unreadCount }}
         />
       </div>
 
@@ -128,10 +91,7 @@ const DashboardLayout: React.FC = () => {
         <AppHeader
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed(!collapsed)}
-          userName={user?.name || 'Admin'}
-          onLogout={logout}
           notificationBellRef={notificationBellRef}
-          globalSearchRef={globalSearchRef}
         />
 
         <RealtimeToast />
@@ -141,8 +101,7 @@ const DashboardLayout: React.FC = () => {
           style={{
             margin: 24,
             padding: 24,
-            background: '#fff',
-            borderRadius: 8,
+            background: 'transparent',
             minHeight: 'calc(100vh - 56px - 48px)',
           }}
         >
@@ -157,7 +116,6 @@ const DashboardLayout: React.FC = () => {
           sidebar: sidebarRef,
           dashboard: dashboardRef,
           notificationBell: notificationBellRef,
-          globalSearch: globalSearchRef,
         }}
       />
 

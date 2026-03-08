@@ -9,7 +9,6 @@ interface OnboardingTourProps {
     sidebar?: React.RefObject<HTMLElement>;
     dashboard?: React.RefObject<HTMLElement>;
     notificationBell?: React.RefObject<HTMLElement>;
-    globalSearch?: React.RefObject<HTMLElement>;
   };
 }
 
@@ -21,24 +20,19 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ open, onClose, r
       target: null,
     },
     {
+      title: 'Menu Navigasi',
+      description: 'Akses semua fitur dari sidebar: TPS, Armada, Jadwal, Laporan Warga, dan lainnya. Tekan "/" untuk pencarian cepat.',
+      target: refs.sidebar?.current || null,
+    },
+    {
       title: 'Dashboard',
       description: 'Pantau semua operasional dari satu layar: status TPS, driver aktif, dan complaint yang butuh perhatian.',
       target: refs.dashboard?.current || null,
     },
     {
-      title: 'Pencarian Global',
-      description: 'Cari TPS, pengguna, atau laporan dari mana saja. Tekan "/" untuk fokus langsung ke pencarian.',
-      target: refs.globalSearch?.current || null,
-    },
-    {
       title: 'Notifikasi',
       description: 'Notifikasi real-time untuk complaint baru, TPS penuh, dan pembayaran jatuh tempo.',
       target: refs.notificationBell?.current || null,
-    },
-    {
-      title: 'Menu Navigasi',
-      description: 'Akses semua fitur dari sidebar: TPS, Armada, Jadwal, Laporan Warga, dan lainnya.',
-      target: refs.sidebar?.current || null,
     },
     {
       title: 'Siap!',
