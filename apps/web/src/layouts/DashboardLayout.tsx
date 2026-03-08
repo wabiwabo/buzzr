@@ -1,15 +1,19 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Layout } from 'antd';
-import { Outlet, Navigate, useNavigate } from 'react-router-dom';
+import { Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth.store';
 import { AppSidebar } from '../components/layout/AppSidebar';
 import { AppHeader } from '../components/layout/AppHeader';
 import { RealtimeToast } from '../components/feedback/RealtimeToast';
 import { OnboardingTour } from '../components/feedback/OnboardingTour';
 import { KeyboardShortcuts } from '../components/feedback/KeyboardShortcuts';
+import { WelcomeFlow } from '../components/onboarding';
 import { useOnboarding } from '../hooks/useOnboarding';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
+import { useChecklist } from '../hooks/useChecklist';
 import { useNotificationStore } from '../stores/notification.store';
+
+const WELCOME_DONE_KEY = 'buzzr_welcome_done';
 
 const { Content } = Layout;
 
@@ -25,7 +29,27 @@ const DashboardLayout: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const { tourOpen, completeTour, restartTour } = useOnboarding();
   const { unreadCount } = useNotificationStore();
+  const { items: checklistItems, dismissed: checklistDismissed, markComplete, dismiss: dismissChecklist } = useChecklist();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return localStorage.getItem(WELCOME_DONE_KEY) !== 'true';
+  });
+
+  // Auto-mark checklist items based on navigation
+  useEffect(() => {
+    const pathToKey: Record<string, string> = {
+      '/': 'view_dashboard',
+      '/tps': 'view_tps',
+      '/complaints': 'view_complaints',
+      '/fleet': 'view_fleet',
+      '/schedules': 'view_schedules',
+      '/analytics': 'view_analytics',
+    };
+    const key = pathToKey[location.pathname];
+    if (key) markComplete(key);
+  }, [location.pathname, markComplete]);
 
   const sidebarRef = useRef<HTMLElement>(null);
   const dashboardRef = useRef<HTMLElement>(null);
@@ -70,6 +94,18 @@ const DashboardLayout: React.FC = () => {
 
   if (!isAuthenticated) return <Navigate to="/login" />;
 
+  if (showWelcome) {
+    return (
+      <WelcomeFlow
+        userName={user?.name || 'Admin'}
+        onComplete={() => {
+          setShowWelcome(false);
+          localStorage.setItem(WELCOME_DONE_KEY, 'true');
+        }}
+      />
+    );
+  }
+
   const siderWidth = collapsed ? 64 : 240;
 
   return (
@@ -84,6 +120,10 @@ const DashboardLayout: React.FC = () => {
           tenantName="DLH Kota Bandung"
           onLogout={logout}
           badgeCounts={{ pendingComplaints: unreadCount }}
+          checklistItems={checklistItems}
+          checklistDismissed={checklistDismissed}
+          onChecklistDismiss={dismissChecklist}
+          onChecklistItemClick={markComplete}
         />
       </div>
 

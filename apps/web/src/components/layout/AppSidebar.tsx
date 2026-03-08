@@ -6,6 +6,8 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getMenuSections } from '../../config/menu';
 import { usePermission } from '../../hooks/usePermission';
+import { ProgressChecklist } from '../onboarding/ProgressChecklist';
+import type { ChecklistItem } from '../onboarding/ProgressChecklist';
 import type { MenuSection, MenuItem } from '../../config/menu';
 
 const { Sider } = Layout;
@@ -20,6 +22,10 @@ interface AppSidebarProps {
   tenantName?: string;
   onLogout?: () => void;
   badgeCounts?: Record<string, number>;
+  checklistItems?: ChecklistItem[];
+  checklistDismissed?: boolean;
+  onChecklistDismiss?: () => void;
+  onChecklistItemClick?: (key: string) => void;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
@@ -31,6 +37,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   tenantName = 'Buzzr',
   onLogout,
   badgeCounts = {},
+  checklistItems,
+  checklistDismissed = false,
+  onChecklistDismiss,
+  onChecklistItemClick,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,6 +166,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           style={{ border: 'none' }}
         />
       </div>
+
+      {/* Onboarding Checklist */}
+      {checklistItems && !checklistDismissed && !collapsed && (
+        <ProgressChecklist
+          items={checklistItems}
+          onDismiss={onChecklistDismiss || (() => {})}
+          onItemClick={onChecklistItemClick}
+        />
+      )}
 
       {/* User Card at Bottom */}
       <div style={{
