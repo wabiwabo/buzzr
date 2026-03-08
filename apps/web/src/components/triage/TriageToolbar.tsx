@@ -17,7 +17,7 @@ interface ActiveFilter {
 interface TriageToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;
-  searchRef?: React.RefObject<HTMLInputElement | null>;
+  searchRef?: React.Ref<HTMLInputElement>;
   groupBy: string;
   onGroupByChange: (value: string) => void;
   groupByOptions: Array<{ value: string; label: string }>;
