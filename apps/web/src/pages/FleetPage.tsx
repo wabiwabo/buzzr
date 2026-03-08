@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Select, Tag, Space, message, Alert } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, InputNumber, Select, Button, Space, Dropdown, message, Tag } from 'antd';
+import { EyeOutlined, MoreOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
+import { PageHeader, StatusBadge } from '../components/common';
+import { SmartTable, DetailDrawer } from '../components/data';
+import { useTableState } from '../hooks/useTableState';
+import type { FilterDef } from '../hooks/useTableState';
 
 interface Vehicle {
   id: string;
@@ -10,156 +14,199 @@ interface Vehicle {
   type: string;
   capacity_tons: number;
   driver_id: string | null;
-  driver_name?: string;
+  driver_name: string | null;
   status: string;
 }
 
-const vehicleTypeLabels: Record<string, string> = {
-  truk: 'Truk',
-  gerobak: 'Gerobak',
-  motor: 'Motor',
-};
+interface Driver {
+  id: string;
+  name: string;
+}
 
-const statusColors: Record<string, string> = {
-  available: 'green',
-  in_use: 'blue',
-  maintenance: 'orange',
-};
+const typeLabels: Record<string, string> = { truck: 'Truk', cart: 'Gerobak', motorcycle: 'Motor' };
 
-export default function FleetPage() {
-  const [data, setData] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const filterDefs: FilterDef[] = [
+  { key: 'type', label: 'Tipe', type: 'select', options: [
+    { label: 'Truk', value: 'truck' }, { label: 'Gerobak', value: 'cart' }, { label: 'Motor', value: 'motorcycle' },
+  ]},
+  { key: 'status', label: 'Status', type: 'select', options: [
+    { label: 'Tersedia', value: 'available' }, { label: 'Digunakan', value: 'in_use' }, { label: 'Maintenance', value: 'maintenance' },
+  ]},
+];
+
+const FleetPage: React.FC = () => {
+  const tableState = useTableState<Vehicle>({ searchFields: ['plate_number', 'driver_name'], defaultPageSize: 10 });
   const [modalOpen, setModalOpen] = useState(false);
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [driverId, setDriverId] = useState('');
+  const [assignModal, setAssignModal] = useState<Vehicle | null>(null);
+  const [drawerRecord, setDrawerRecord] = useState<Vehicle | null>(null);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [assignForm] = Form.useForm();
 
   const fetchData = async () => {
+    tableState.setLoading(true);
     try {
-      setLoading(true);
-      const res = await api.get('/fleet');
-      setData(res.data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Gagal memuat data armada');
-    } finally {
-      setLoading(false);
-    }
+      const { data } = await api.get('/fleet');
+      tableState.setData(Array.isArray(data) ? data : []);
+    } catch { message.error('Gagal memuat data armada'); }
+    tableState.setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchDrivers = async () => {
+    try {
+      const { data } = await api.get('/users', { params: { role: 'driver' } });
+      setDrivers(Array.isArray(data) ? data : []);
+    } catch { /* silent */ }
+  };
+
+  useEffect(() => { fetchData(); fetchDrivers(); }, []);
 
   const handleCreate = async (values: any) => {
+    setSubmitting(true);
     try {
-      setSubmitting(true);
       await api.post('/fleet', values);
       message.success('Kendaraan berhasil ditambahkan');
       setModalOpen(false);
       form.resetFields();
       fetchData();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gagal menambahkan kendaraan');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { message.error('Gagal menambahkan kendaraan'); }
+    setSubmitting(false);
   };
 
-  const handleAssign = async () => {
-    if (!selectedVehicle) return;
+  const handleAssign = async (values: any) => {
+    if (!assignModal) return;
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-      await api.patch(`/fleet/${selectedVehicle.id}/assign`, { driverId });
+      await api.patch(`/fleet/${assignModal.id}/assign`, { driverId: values.driver_id });
       message.success('Driver berhasil ditugaskan');
-      setAssignModalOpen(false);
-      setDriverId('');
+      setAssignModal(null);
+      assignForm.resetFields();
       fetchData();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gagal menugaskan driver');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { message.error('Gagal menugaskan driver'); }
+    setSubmitting(false);
   };
 
-  const handleUnassign = async (vehicleId: string) => {
+  const handleUnassign = async (vehicle: Vehicle) => {
     try {
-      await api.patch(`/fleet/${vehicleId}/unassign`);
-      message.success('Driver berhasil dilepas');
+      await api.patch(`/fleet/${vehicle.id}/unassign`);
+      message.success('Driver berhasil dicopot');
       fetchData();
-    } catch (err: any) {
-      message.error(err.response?.data?.message || 'Gagal melepas driver');
-    }
+    } catch { message.error('Gagal mencopot driver'); }
   };
 
   const columns: ColumnsType<Vehicle> = [
-    { title: 'Plat Nomor', dataIndex: 'plate_number', key: 'plate_number' },
+    { title: 'Plat Nomor', dataIndex: 'plate_number', sorter: true, width: 140 },
+    { title: 'Tipe', dataIndex: 'type', width: 100, render: (v) => typeLabels[v] || v },
+    { title: 'Kapasitas', dataIndex: 'capacity_tons', width: 110, render: (v) => `${v} ton`, sorter: true },
     {
-      title: 'Tipe', dataIndex: 'type', key: 'type',
-      render: (t: string) => vehicleTypeLabels[t] || t,
+      title: 'Driver',
+      width: 160,
+      render: (_, r) => r.driver_name || <Tag color="default">Belum ditugaskan</Tag>,
     },
-    { title: 'Kapasitas (ton)', dataIndex: 'capacity_tons', key: 'capacity_tons' },
+    { title: 'Status', dataIndex: 'status', width: 120, render: (v) => <StatusBadge status={v} /> },
     {
-      title: 'Driver', dataIndex: 'driver_name', key: 'driver_name',
-      render: (name: string, record: Vehicle) => name || (record.driver_id ? record.driver_id : <Tag>Belum ditugaskan</Tag>),
-    },
-    {
-      title: 'Status', dataIndex: 'status', key: 'status',
-      render: (s: string) => <Tag color={statusColors[s] || 'default'}>{s?.toUpperCase()}</Tag>,
-    },
-    {
-      title: 'Aksi', key: 'actions',
-      render: (_: any, record: Vehicle) => (
-        <Space>
-          <Button size="small" onClick={() => { setSelectedVehicle(record); setAssignModalOpen(true); }}>
-            Assign Driver
-          </Button>
-          {record.driver_id && (
-            <Button size="small" danger onClick={() => handleUnassign(record.id)}>
-              Unassign
-            </Button>
-          )}
-        </Space>
+      title: 'Aksi', width: 80,
+      render: (_, record) => (
+        <Dropdown menu={{
+          items: [
+            { key: 'view', icon: <EyeOutlined />, label: 'Detail', onClick: () => setDrawerRecord(record) },
+            { key: 'assign', icon: <UserAddOutlined />, label: 'Assign Driver', onClick: () => setAssignModal(record) },
+            ...(record.driver_id ? [{
+              key: 'unassign', icon: <UserDeleteOutlined />, label: 'Copot Driver', danger: true,
+              onClick: () => handleUnassign(record),
+            }] : []),
+          ],
+        }}>
+          <Button type="text" icon={<MoreOutlined />} size="small" />
+        </Dropdown>
       ),
     },
   ];
 
-  if (error && !data.length) return <Alert type="error" message={error} />;
-
   return (
-    <>
-      <Space style={{ marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>Tambah Kendaraan</Button>
-      </Space>
+    <div>
+      <PageHeader
+        title="Manajemen Armada"
+        description="Kelola kendaraan dan penugasan driver"
+        breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Armada' }]}
+        primaryAction={{ label: 'Tambah Kendaraan', onClick: () => setModalOpen(true) }}
+      />
 
-      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+      <SmartTable<Vehicle>
+        tableState={tableState}
+        columns={columns}
+        filterDefs={filterDefs}
+        searchPlaceholder="Cari plat nomor atau nama driver..."
+        exportFileName="data-armada"
+        exportColumns={[
+          { title: 'Plat Nomor', dataIndex: 'plate_number' },
+          { title: 'Tipe', dataIndex: 'type', render: (v: string) => typeLabels[v] || v },
+          { title: 'Kapasitas (ton)', dataIndex: 'capacity_tons' },
+          { title: 'Driver', dataIndex: 'driver_name' },
+          { title: 'Status', dataIndex: 'status' },
+        ]}
+        onRefresh={fetchData}
+        onRowClick={(r) => setDrawerRecord(r)}
+        emptyTitle="Belum ada kendaraan"
+        emptyDescription="Daftarkan armada untuk mulai mengatur pengangkutan"
+        emptyActionLabel="Tambah Kendaraan"
+        onEmptyAction={() => setModalOpen(true)}
+      />
 
-      <Modal title="Tambah Kendaraan" open={modalOpen} onCancel={() => setModalOpen(false)} footer={null}>
+      <Modal title="Tambah Kendaraan" open={modalOpen} onCancel={() => { setModalOpen(false); form.resetFields(); }} footer={null}>
         <Form form={form} layout="vertical" onFinish={handleCreate}>
-          <Form.Item name="plateNumber" label="Plat Nomor" rules={[{ required: true, min: 3 }]}>
-            <Input />
+          <Form.Item name="plate_number" label="Plat Nomor" rules={[{ required: true }]}>
+            <Input placeholder="Contoh: D 1234 ABC" />
           </Form.Item>
-          <Form.Item name="type" label="Tipe" rules={[{ required: true }]}>
-            <Select>
-              <Select.Option value="truk">Truk</Select.Option>
-              <Select.Option value="gerobak">Gerobak</Select.Option>
-              <Select.Option value="motor">Motor</Select.Option>
-            </Select>
+          <Form.Item name="type" label="Tipe Kendaraan" rules={[{ required: true }]}>
+            <Select options={[
+              { label: 'Truk', value: 'truck' }, { label: 'Gerobak', value: 'cart' }, { label: 'Motor', value: 'motorcycle' },
+            ]} />
           </Form.Item>
-          <Form.Item name="capacityTons" label="Kapasitas (ton)" rules={[{ required: true }]}>
-            <InputNumber min={0.1} step={0.1} style={{ width: '100%' }} />
+          <Form.Item name="capacity_tons" label="Kapasitas (ton)" rules={[{ required: true }]}>
+            <InputNumber min={0.1} step={0.5} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting} block>Simpan</Button>
-          </Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
+            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
+          </div>
         </Form>
       </Modal>
 
-      <Modal title="Assign Driver" open={assignModalOpen} onOk={handleAssign} onCancel={() => setAssignModalOpen(false)} confirmLoading={submitting}>
-        <p>Kendaraan: {selectedVehicle?.plate_number}</p>
-        <Input placeholder="Driver ID (UUID)" value={driverId} onChange={(e) => setDriverId(e.target.value)} />
+      <Modal title={`Assign Driver — ${assignModal?.plate_number || ''}`} open={!!assignModal} onCancel={() => { setAssignModal(null); assignForm.resetFields(); }} footer={null}>
+        <Form form={assignForm} layout="vertical" onFinish={handleAssign}>
+          <Form.Item name="driver_id" label="Pilih Driver" rules={[{ required: true }]}>
+            <Select
+              showSearch
+              placeholder="Cari nama driver..."
+              optionFilterProp="label"
+              options={drivers.map((d) => ({ label: d.name, value: d.id }))}
+            />
+          </Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={() => { setAssignModal(null); assignForm.resetFields(); }}>Batal</Button>
+            <Button type="primary" htmlType="submit" loading={submitting}>Tugaskan</Button>
+          </div>
+        </Form>
       </Modal>
-    </>
+
+      <DetailDrawer
+        open={!!drawerRecord}
+        onClose={() => setDrawerRecord(null)}
+        title={`Kendaraan: ${drawerRecord?.plate_number || ''}`}
+        fields={drawerRecord ? [
+          { label: 'Tipe', value: typeLabels[drawerRecord.type] || drawerRecord.type },
+          { label: 'Kapasitas', value: `${drawerRecord.capacity_tons} ton` },
+          { label: 'Status', value: <StatusBadge status={drawerRecord.status} /> },
+          { label: 'Driver', value: drawerRecord.driver_name || 'Belum ditugaskan' },
+        ] : []}
+        actions={drawerRecord && (
+          <Button onClick={() => { setDrawerRecord(null); setAssignModal(drawerRecord); }}>Assign Driver</Button>
+        )}
+      />
+    </div>
   );
-}
+};
+
+export default FleetPage;
