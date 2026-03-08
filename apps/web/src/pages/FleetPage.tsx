@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button, Space, Dropdown, message, Tag } from 'antd';
+import { Form, Input, InputNumber, Button, Space, Dropdown, message, Tag } from 'antd';
 import { EyeOutlined, MoreOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import api from '../services/api';
-import { PageHeader, StatusBadge } from '../components/common';
+import { PageHeader, StatusBadge, SlideOver, VisualSelector } from '../components/common';
 import { SmartTable, DetailDrawer } from '../components/data';
 import { useTableState } from '../hooks/useTableState';
 import type { FilterDef } from '../hooks/useTableState';
@@ -148,48 +148,61 @@ const FleetPage: React.FC = () => {
         ]}
         onRefresh={fetchData}
         onRowClick={(r) => setDrawerRecord(r)}
-        emptyTitle="Belum ada kendaraan"
-        emptyDescription="Daftarkan armada untuk mulai mengatur pengangkutan"
+        emptyTitle="Belum ada kendaraan terdaftar"
+        emptyDescription="Tambahkan kendaraan untuk mulai mengatur jadwal pengangkutan. Anda bisa menambahkan truk, gerobak, atau motor."
         emptyActionLabel="Tambah Kendaraan"
         onEmptyAction={() => setModalOpen(true)}
       />
 
-      <Modal title="Tambah Kendaraan" open={modalOpen} onCancel={() => { setModalOpen(false); form.resetFields(); }} footer={null}>
+      <SlideOver
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); form.resetFields(); }}
+        title="Tambah Kendaraan"
+        footer={
+          <>
+            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
+            <Button type="primary" onClick={() => form.submit()} loading={submitting}>Simpan</Button>
+          </>
+        }
+      >
         <Form form={form} layout="vertical" onFinish={handleCreate}>
           <Form.Item name="plate_number" label="Plat Nomor" rules={[{ required: true }]}>
             <Input placeholder="Contoh: D 1234 ABC" />
           </Form.Item>
           <Form.Item name="type" label="Tipe Kendaraan" rules={[{ required: true }]}>
-            <Select options={[
-              { label: 'Truk', value: 'truck' }, { label: 'Gerobak', value: 'cart' }, { label: 'Motor', value: 'motorcycle' },
-            ]} />
+            <VisualSelector
+              options={[
+                { value: 'truck', label: 'Truk', description: 'Kendaraan besar' },
+                { value: 'cart', label: 'Gerobak', description: 'Kendaraan sedang' },
+                { value: 'motorcycle', label: 'Motor', description: 'Kendaraan kecil' },
+              ]}
+              value={form.getFieldValue('type')}
+              onChange={(v) => form.setFieldsValue({ type: v })}
+            />
           </Form.Item>
           <Form.Item name="capacity_tons" label="Kapasitas (ton)" rules={[{ required: true }]}>
             <InputNumber min={0.1} step={0.5} style={{ width: '100%' }} />
           </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Simpan</Button>
-          </div>
         </Form>
-      </Modal>
+      </SlideOver>
 
-      <Modal title={`Assign Driver — ${assignModal?.plate_number || ''}`} open={!!assignModal} onCancel={() => { setAssignModal(null); assignForm.resetFields(); }} footer={null}>
+      <SlideOver
+        open={!!assignModal}
+        onClose={() => { setAssignModal(null); assignForm.resetFields(); }}
+        title={`Assign Driver — ${assignModal?.plate_number || ''}`}
+        footer={
+          <>
+            <Button onClick={() => { setAssignModal(null); assignForm.resetFields(); }}>Batal</Button>
+            <Button type="primary" onClick={() => assignForm.submit()} loading={submitting}>Tugaskan</Button>
+          </>
+        }
+      >
         <Form form={assignForm} layout="vertical" onFinish={handleAssign}>
           <Form.Item name="driver_id" label="Pilih Driver" rules={[{ required: true }]}>
-            <Select
-              showSearch
-              placeholder="Cari nama driver..."
-              optionFilterProp="label"
-              options={drivers.map((d) => ({ label: d.name, value: d.id }))}
-            />
+            <Input.Search placeholder="Cari nama driver..." />
           </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => { setAssignModal(null); assignForm.resetFields(); }}>Batal</Button>
-            <Button type="primary" htmlType="submit" loading={submitting}>Tugaskan</Button>
-          </div>
         </Form>
-      </Modal>
+      </SlideOver>
 
       <DetailDrawer
         open={!!drawerRecord}
