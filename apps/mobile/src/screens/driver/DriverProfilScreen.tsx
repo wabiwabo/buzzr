@@ -9,43 +9,65 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
-import { ROLE_LABELS } from '@buzzr/constants';
+import { ROLE_LABELS, WASTE_CATEGORY_LABELS } from '@buzzr/constants';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { formatDate } from '../../utils/format';
 
 interface ManifestItem {
   id: string;
+  source_tps_id?: string;
+  sourceTpsId?: string;
+  tps_name?: string;
+  tpsName?: string;
+  category?: string;
+  volume_kg?: number;
+  volumeKg?: number;
   status?: string;
+  checkpoint_at?: string;
+  checkpointAt?: string;
+  created_at?: string;
+  createdAt?: string;
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Menunggu',
+  in_transit: 'Dalam Perjalanan',
+  delivered: 'Terkirim',
+  verified: 'Terverifikasi',
+};
+
+const getStatusColor = (status?: string): string => {
+  switch (status) {
+    case 'pending': return '#fa8c16';
+    case 'in_transit': return '#1890ff';
+    case 'delivered': return '#52c41a';
+    case 'verified': return '#13c2c2';
+    default: return '#999';
+  }
+};
 
 export default function DriverProfilScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const [completedCount, setCompletedCount] = useState<number>(0);
-  const [totalCount, setTotalCount] = useState<number>(0);
+  const [manifest, setManifest] = useState<ManifestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [submittingManifest, setSubmittingManifest] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch today's manifest to get checkpoint counts
       const manifestRes = await api
         .get('/transfer/manifest/' + (user?.id || ''))
         .catch(() => ({ data: [] }));
 
-      const manifest: ManifestItem[] = Array.isArray(manifestRes.data)
+      const items: ManifestItem[] = Array.isArray(manifestRes.data)
         ? manifestRes.data
         : manifestRes.data?.data || [];
 
-      setTotalCount(manifest.length);
-      setCompletedCount(
-        manifest.filter(
-          (item) =>
-            item.status === 'delivered' || item.status === 'verified',
-        ).length,
-      );
+      setManifest(items);
     } catch {
-      Alert.alert('Error', 'Gagal memuat data profil.');
+      Alert.alert('Error', 'Gagal memuat data.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,6 +82,46 @@ export default function DriverProfilScreen() {
     setRefreshing(true);
     fetchData();
   }, [fetchData]);
+
+  const completedCount = manifest.filter(
+    (item) => item.status === 'delivered' || item.status === 'verified',
+  ).length;
+
+  const handleSubmitToTpst = () => {
+    const pendingItems = manifest.filter(
+      (item) => item.status !== 'verified',
+    );
+    if (pendingItems.length === 0) {
+      Alert.alert('Info', 'Tidak ada manifest untuk diserahkan.');
+      return;
+    }
+    Alert.alert(
+      'Serah Terima TPST',
+      `Serahkan ${pendingItems.length} item manifest ke TPST?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Serahkan',
+          onPress: async () => {
+            setSubmittingManifest(true);
+            try {
+              await Promise.all(
+                pendingItems.map((item) =>
+                  api.put(`/transfer/${item.id}/verify`).catch(() => null),
+                ),
+              );
+              Alert.alert('Berhasil', 'Manifest telah diserahkan ke TPST.');
+              fetchData();
+            } catch {
+              Alert.alert('Error', 'Gagal menyerahkan manifest.');
+            } finally {
+              setSubmittingManifest(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const handleLogout = () => {
     Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar?', [
@@ -137,11 +199,66 @@ export default function DriverProfilScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{totalCount}</Text>
-            <Text style={styles.statLabel}>Total Checkpoint</Text>
+            <Text style={styles.statValue}>{manifest.length}</Text>
+            <Text style={styles.statLabel}>Total</Text>
           </View>
         </View>
       </View>
+
+      {/* Manifest List */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Manifest Trip</Text>
+        {manifest.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>Belum ada manifest hari ini</Text>
+          </View>
+        ) : (
+          manifest.map((item) => {
+            const statusColor = getStatusColor(item.status);
+            const catLabel =
+              WASTE_CATEGORY_LABELS[
+                item.category as keyof typeof WASTE_CATEGORY_LABELS
+              ] || item.category || '-';
+            return (
+              <View key={item.id} style={styles.manifestCard}>
+                <View style={styles.manifestHeader}>
+                  <Text style={styles.manifestTps}>
+                    {item.tps_name || item.tpsName || item.source_tps_id || item.sourceTpsId || 'TPS'}
+                  </Text>
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
+                    <Text style={[styles.statusText, { color: statusColor }]}>
+                      {STATUS_LABELS[item.status || ''] || item.status || '-'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.manifestDetail}>
+                  {catLabel} - {item.volume_kg || item.volumeKg || 0} kg
+                </Text>
+                <Text style={styles.manifestDate}>
+                  {formatDate(item.checkpoint_at || item.checkpointAt || item.created_at || item.createdAt)}
+                </Text>
+              </View>
+            );
+          })
+        )}
+      </View>
+
+      {/* Submit to TPST */}
+      {manifest.length > 0 && (
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.submitTpstBtn, submittingManifest && styles.submitDisabled]}
+            onPress={handleSubmitToTpst}
+            disabled={submittingManifest}
+          >
+            {submittingManifest ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitTpstText}>Serahkan Manifest ke TPST</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Logout */}
       <View style={styles.section}>
@@ -265,6 +382,72 @@ const styles = StyleSheet.create({
     width: 1,
     height: 40,
     backgroundColor: '#f0f0f0',
+  },
+  manifestCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  manifestHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  manifestTps: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    marginRight: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  manifestDetail: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 6,
+  },
+  manifestDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  emptyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  submitTpstBtn: {
+    backgroundColor: '#52c41a',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+  },
+  submitDisabled: {
+    opacity: 0.6,
+  },
+  submitTpstText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   logoutBtn: {
     backgroundColor: '#fff',

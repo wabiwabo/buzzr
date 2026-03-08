@@ -80,12 +80,23 @@ export default function CheckpointScreen() {
 
     setSubmitting(true);
     try {
-      await api.post('/transfer', {
-        source_tps_id: tpsId.trim(),
-        vehicle_id: vehicleId.trim(),
-        category: selectedCategory,
-        volume_kg: Number(volume),
-        notes: notes.trim() || undefined,
+      const formData = new FormData();
+      formData.append('source_tps_id', tpsId.trim());
+      formData.append('vehicle_id', vehicleId.trim());
+      formData.append('category', selectedCategory);
+      formData.append('volume_kg', String(Number(volume)));
+      if (notes.trim()) formData.append('notes', notes.trim());
+      if (photo) {
+        const filename = photo.split('/').pop() || 'checkpoint.jpg';
+        const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+        formData.append('photo', {
+          uri: photo,
+          name: filename,
+          type: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+        } as any);
+      }
+      await api.post('/transfer', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       Alert.alert('Berhasil', 'Data checkpoint berhasil disimpan.', [
