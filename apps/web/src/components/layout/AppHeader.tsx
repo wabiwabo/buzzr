@@ -12,6 +12,8 @@ interface AppHeaderProps {
   onToggleCollapse: () => void;
   userName: string;
   onLogout: () => void;
+  notificationBellRef?: React.RefObject<HTMLElement>;
+  globalSearchRef?: React.RefObject<HTMLElement>;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -19,6 +21,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onToggleCollapse,
   userName,
   onLogout,
+  notificationBellRef,
+  globalSearchRef,
 }) => {
   const userMenuItems = [
     { key: 'profile', icon: <UserOutlined />, label: 'Profil' },
@@ -47,11 +51,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
           onClick={onToggleCollapse}
         />
-        <GlobalSearch />
+        <span ref={globalSearchRef as React.RefObject<HTMLSpanElement>}>
+          <GlobalSearch />
+        </span>
       </Space>
 
       <Space size="middle">
-        <NotificationBell />
+        <span ref={notificationBellRef as React.RefObject<HTMLSpanElement>}>
+          <NotificationBell />
+        </span>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
             <Avatar size="small" icon={<UserOutlined />} />
