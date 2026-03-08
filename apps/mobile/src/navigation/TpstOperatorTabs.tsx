@@ -2,9 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import SetorScreen from '../screens/collector/SetorScreen';
-import DompetScreen from '../screens/collector/DompetScreen';
-import CollectorProfilScreen from '../screens/collector/CollectorProfilScreen';
+import TerimaManifestScreen from '../screens/tpst-operator/TerimaManifestScreen';
+import VerifikasiScreen from '../screens/tpst-operator/VerifikasiScreen';
+import TpstProfilScreen from '../screens/tpst-operator/TpstProfilScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,7 +19,7 @@ function withSafeArea(Component: React.ComponentType) {
   };
 }
 
-export default function CollectorTabs() {
+export default function TpstOperatorTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -28,9 +28,9 @@ export default function CollectorTabs() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Setor" component={withSafeArea(SetorScreen)} />
-      <Tab.Screen name="Dompet" component={withSafeArea(DompetScreen)} />
-      <Tab.Screen name="Profil" component={withSafeArea(CollectorProfilScreen)} />
+      <Tab.Screen name="Terima" component={withSafeArea(TerimaManifestScreen)} />
+      <Tab.Screen name="Verifikasi" component={withSafeArea(VerifikasiScreen)} />
+      <Tab.Screen name="Profil" component={withSafeArea(TpstProfilScreen)} />
     </Tab.Navigator>
   );
 }

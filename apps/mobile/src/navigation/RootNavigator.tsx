@@ -8,6 +8,8 @@ import CitizenTabs from './CitizenTabs';
 import DriverTabs from './DriverTabs';
 import TpsOperatorTabs from './TpsOperatorTabs';
 import CollectorTabs from './CollectorTabs';
+import SweeperTabs from './SweeperTabs';
+import TpstOperatorTabs from './TpstOperatorTabs';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,8 +19,8 @@ function getRoleNavigator(role: string) {
     case 'driver': return DriverTabs;
     case 'tps_operator': return TpsOperatorTabs;
     case 'collector': return CollectorTabs;
-    case 'sweeper': return CitizenTabs; // Placeholder
-    case 'tpst_operator': return TpsOperatorTabs; // Placeholder
+    case 'sweeper': return SweeperTabs;
+    case 'tpst_operator': return TpstOperatorTabs;
     default: return CitizenTabs;
   }
 }

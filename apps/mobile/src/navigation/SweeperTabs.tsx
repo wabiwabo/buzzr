@@ -2,9 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import SetorScreen from '../screens/collector/SetorScreen';
-import DompetScreen from '../screens/collector/DompetScreen';
-import CollectorProfilScreen from '../screens/collector/CollectorProfilScreen';
+import TugasScreen from '../screens/sweeper/TugasScreen';
+import AbsensiScreen from '../screens/sweeper/AbsensiScreen';
+import SweeperProfilScreen from '../screens/sweeper/SweeperProfilScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,7 +19,7 @@ function withSafeArea(Component: React.ComponentType) {
   };
 }
 
-export default function CollectorTabs() {
+export default function SweeperTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -28,9 +28,9 @@ export default function CollectorTabs() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Setor" component={withSafeArea(SetorScreen)} />
-      <Tab.Screen name="Dompet" component={withSafeArea(DompetScreen)} />
-      <Tab.Screen name="Profil" component={withSafeArea(CollectorProfilScreen)} />
+      <Tab.Screen name="Tugas" component={withSafeArea(TugasScreen)} />
+      <Tab.Screen name="Absensi" component={withSafeArea(AbsensiScreen)} />
+      <Tab.Screen name="Profil" component={withSafeArea(SweeperProfilScreen)} />
     </Tab.Navigator>
   );
 }
