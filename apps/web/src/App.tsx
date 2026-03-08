@@ -6,11 +6,11 @@ import LoginPage from './pages/LoginPage';
 import { useAuthStore } from './stores/auth.store';
 
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
-const TpsPage = React.lazy(() => import('./pages/TpsPage'));
-const FleetPage = React.lazy(() => import('./pages/FleetPage'));
-const SchedulePage = React.lazy(() => import('./pages/SchedulePage'));
+const TpsTriagePage = React.lazy(() => import('./pages/TpsTriagePage'));
+const FleetTriagePage = React.lazy(() => import('./pages/FleetTriagePage'));
+const ScheduleTriagePage = React.lazy(() => import('./pages/ScheduleTriagePage'));
 const ComplaintTriagePage = React.lazy(() => import('./pages/ComplaintTriagePage'));
-const PaymentPage = React.lazy(() => import('./pages/PaymentPage'));
+const PaymentTriagePage = React.lazy(() => import('./pages/PaymentTriagePage'));
 const UserPage = React.lazy(() => import('./pages/UserPage'));
 const ReportPage = React.lazy(() => import('./pages/ReportPage'));
 const LiveOperationsPage = React.lazy(() => import('./pages/LiveOperationsPage'));
@@ -36,11 +36,11 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="live" element={<LiveOperationsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="tps" element={<TpsPage />} />
-          <Route path="fleet" element={<FleetPage />} />
-          <Route path="schedules" element={<SchedulePage />} />
+          <Route path="tps" element={<TpsTriagePage />} />
+          <Route path="fleet" element={<FleetTriagePage />} />
+          <Route path="schedules" element={<ScheduleTriagePage />} />
           <Route path="complaints" element={<ComplaintTriagePage />} />
-          <Route path="payments" element={<PaymentPage />} />
+          <Route path="payments" element={<PaymentTriagePage />} />
           <Route path="users" element={<UserPage />} />
           <Route path="reports" element={<ReportPage />} />
         </Route>
