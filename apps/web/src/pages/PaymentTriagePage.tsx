@@ -101,7 +101,7 @@ export default function PaymentTriagePage() {
   } = useServerTable<Payment>({
     endpoint: '/payments',
     columnDefs: columns,
-    defaultSort: { field: 't.created_at', order: 'desc' },
+    defaultSort: { field: 'created_at', order: 'desc' },
     filterDefs: paymentFilterDefs,
     columnMap: { type: 't.type', amount: 't.amount', status: 't.status', created_at: 't.created_at' },
   });

@@ -103,7 +103,7 @@ export default function ScheduleTriagePage() {
   } = useServerTable<Schedule>({
     endpoint: '/schedules',
     columnDefs: columns,
-    defaultSort: { field: 's.start_time', order: 'asc' },
+    defaultSort: { field: 'start_time', order: 'asc' },
     filterDefs: scheduleFilterDefs,
     columnMap: { route_name: 's.route_name', schedule_type: 's.schedule_type', status: 's.status', start_time: 's.start_time', created_at: 's.created_at' },
   });

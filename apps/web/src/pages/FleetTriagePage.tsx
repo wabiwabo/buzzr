@@ -29,7 +29,6 @@ const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value
 const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
 const fleetFilterDefs: FilterDef[] = [
-  { key: 'v.status', label: 'Status', type: 'select', options: statusOptions },
   { key: 'v.type', label: 'Tipe', type: 'select', options: typeOptions },
 ];
 
@@ -60,6 +59,7 @@ export default function FleetTriagePage() {
     columnHelper.accessor('capacity_tons', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Kapasitas" />,
       cell: (info) => <span className="text-sm tabular-nums">{info.getValue()} ton</span>,
+      enableSorting: false,
     }),
     columnHelper.accessor('driver_name', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Pengemudi" />,
@@ -73,6 +73,7 @@ export default function FleetTriagePage() {
     columnHelper.accessor('status', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: (info) => <StatusBadge status={info.getValue()} />,
+      enableSorting: false,
     }),
   ], []);
 
@@ -82,9 +83,9 @@ export default function FleetTriagePage() {
   } = useServerTable<Vehicle>({
     endpoint: '/fleet',
     columnDefs: columns,
-    defaultSort: { field: 'v.plate_number', order: 'asc' },
+    defaultSort: { field: 'plate_number', order: 'asc' },
     filterDefs: fleetFilterDefs,
-    columnMap: { plate_number: 'v.plate_number', type: 'v.type', status: 'v.status', created_at: 'v.created_at' },
+    columnMap: { plate_number: 'v.plate_number', type: 'v.type', created_at: 'v.created_at' },
   });
 
   searchTextRef.current = searchText;
@@ -147,7 +148,7 @@ export default function FleetTriagePage() {
           onResetFilters={resetFilters}
           activeFilterCount={activeFilterCount}
           filterDefs={fleetFilterDefs}
-          filterLabels={{ 'v.status': 'Status', 'v.type': 'Tipe' }}
+          filterLabels={{ 'v.type': 'Tipe' }}
           onPageChange={setPage}
           onLimitChange={setLimit}
           onRefresh={refetch}

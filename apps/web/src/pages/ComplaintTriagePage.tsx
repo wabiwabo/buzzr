@@ -114,7 +114,7 @@ export default function ComplaintTriagePage() {
   } = useServerTable<Complaint>({
     endpoint: '/complaints',
     columnDefs: columns,
-    defaultSort: { field: 'c.created_at', order: 'desc' },
+    defaultSort: { field: 'created_at', order: 'desc' },
     filterDefs: complaintFilterDefs,
     columnMap: { category: 'c.category', status: 'c.status', created_at: 'c.created_at' },
   });

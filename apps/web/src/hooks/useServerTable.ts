@@ -115,7 +115,7 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
   // Resolve sorting column ID to backend SQL column name via columnMap
   const resolvedSortCol = sorting[0]
     ? (columnMap[sorting[0].id] || sorting[0].id)
-    : defaultSort.field;
+    : (columnMap[defaultSort.field] || defaultSort.field);
   const resolvedSortDir = sorting[0]
     ? (sorting[0].desc ? 'desc' : 'asc')
     : defaultSort.order;

@@ -66,7 +66,7 @@ export class FleetService {
       baseParams: [true],
       searchableColumns: ['v.plate_number'],
       sortableColumns: ['v.plate_number', 'v.type', 'v.created_at'],
-      filterableColumns: ['v.type', 'v.status'],
+      filterableColumns: ['v.type'],
       defaultSort: 'v.plate_number',
       defaultOrder: 'asc',
     }, {
