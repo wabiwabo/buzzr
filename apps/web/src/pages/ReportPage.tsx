@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import dayjs from 'dayjs';
+import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, createColumnHelper, type SortingState } from '@tanstack/react-table';
 import api from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader, PageTransition } from '../components/common';
-import { SmartTable } from '../components/data';
-import { useTableState } from '../hooks/useTableState';
+import { EmptyState } from '@/components/common/EmptyState';
+import { DataTableColumnHeader } from '@/components/data-table';
 import { WASTE_COLORS, CHART_COLORS } from '../theme/tokens';
 
 interface WasteRow {
@@ -41,7 +43,8 @@ const categoryLabels: Record<string, string> = {
 const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[3], CHART_COLORS[2]];
 
 const ReportPage: React.FC = () => {
-  const driverTableState = useTableState<DriverPerf>({ searchFields: ['name'] });
+  const [driverData, setDriverData] = useState<DriverPerf[]>([]);
+  const [driverSorting, setDriverSorting] = useState<SortingState>([]);
   const [dateRange, setDateRange] = useState<[string, string]>([
     dayjs().subtract(30, 'day').format('YYYY-MM-DD'),
     dayjs().format('YYYY-MM-DD'),
@@ -67,7 +70,7 @@ const ReportPage: React.FC = () => {
         setWasteData(Object.values(byDate).sort((a: any, b: any) => a.date.localeCompare(b.date)));
       } else if (tab === 'driver') {
         const res = await api.get('/reports/driver-performance', { params: { from, to } });
-        driverTableState.setData(Array.isArray(res.data) ? res.data : []);
+        setDriverData(Array.isArray(res.data) ? res.data : []);
       } else if (tab === 'complaint') {
         const res = await api.get('/reports/complaints', { params: { from, to } });
         setComplaintStats(res.data);
@@ -83,15 +86,34 @@ const ReportPage: React.FC = () => {
     fetchReport(tab, dateRange[0], dateRange[1]);
   };
 
-  const driverColumns = [
-    { title: 'Nama', dataIndex: 'name', sorter: true, width: 180 },
-    { title: 'Total Trip', dataIndex: 'total_trips', sorter: true, width: 120 },
-    { title: 'Checkpoint', dataIndex: 'total_checkpoints', sorter: true, width: 120 },
-    {
-      title: 'Volume (kg)', dataIndex: 'total_volume_kg', width: 140, sorter: true,
-      render: (v: number) => Number(v || 0).toLocaleString('id-ID'),
-    },
-  ];
+  const driverColumnHelper = createColumnHelper<DriverPerf>();
+  const driverColumns = useMemo(() => [
+    driverColumnHelper.accessor('name', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Nama" />,
+      cell: (info) => info.getValue(),
+    }),
+    driverColumnHelper.accessor('total_trips', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total Trip" />,
+      cell: (info) => info.getValue(),
+    }),
+    driverColumnHelper.accessor('total_checkpoints', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Checkpoint" />,
+      cell: (info) => info.getValue(),
+    }),
+    driverColumnHelper.accessor('total_volume_kg', {
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Volume (kg)" />,
+      cell: (info) => Number(info.getValue() || 0).toLocaleString('id-ID'),
+    }),
+  ], []);
+
+  const driverTable = useReactTable({
+    data: driverData,
+    columns: driverColumns,
+    state: { sorting: driverSorting },
+    onSortingChange: setDriverSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
   const complaintPieData = complaintStats ? [
     { name: 'Selesai', value: complaintStats.resolved },
@@ -168,20 +190,40 @@ const ReportPage: React.FC = () => {
       {activeTab === 'driver' && (
         <Card>
           <CardContent className="pt-6">
-            <SmartTable<DriverPerf>
-              tableState={driverTableState}
-              columns={driverColumns}
-              searchPlaceholder="Cari nama driver..."
-              exportFileName="performa-driver"
-              exportColumns={[
-                { title: 'Nama', dataIndex: 'name' },
-                { title: 'Total Trip', dataIndex: 'total_trips' },
-                { title: 'Checkpoint', dataIndex: 'total_checkpoints' },
-                { title: 'Volume (kg)', dataIndex: 'total_volume_kg' },
-              ]}
-              emptyTitle="Tidak ada data"
-              emptyDescription="Klik 'Tampilkan' untuk memuat data performa driver"
-            />
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  {driverTable.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {driverTable.getRowModel().rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={driverColumns.length} className="h-48">
+                        <EmptyState type="no-data" title="Tidak ada data" description="Klik 'Tampilkan' untuk memuat data performa driver" />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    driverTable.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
