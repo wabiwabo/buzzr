@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import { useAuthStore } from './stores/auth.store';
 
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
-const TpsTriagePage = React.lazy(() => import('./pages/TpsTriagePage'));
+const TpsPage = React.lazy(() => import('./pages/TpsPage'));
 const FleetTriagePage = React.lazy(() => import('./pages/FleetTriagePage'));
 const ScheduleTriagePage = React.lazy(() => import('./pages/ScheduleTriagePage'));
 const ComplaintTriagePage = React.lazy(() => import('./pages/ComplaintTriagePage'));
@@ -36,7 +36,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="live" element={<LiveOperationsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="tps" element={<TpsTriagePage />} />
+          <Route path="tps" element={<TpsPage />} />
           <Route path="fleet" element={<FleetTriagePage />} />
           <Route path="schedules" element={<ScheduleTriagePage />} />
           <Route path="complaints" element={<ComplaintTriagePage />} />
