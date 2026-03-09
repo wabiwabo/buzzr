@@ -14,12 +14,11 @@ import type { GpsUpdatePayload, LiveAlert, VehicleWithStatus, TpsMapItem } from 
 const POLL_INTERVAL_MS = 30_000;
 
 export function useLiveData() {
-  const store = useLiveOpsStore();
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   // WebSocket: real-time GPS updates
   useSocket('gps:position', (data: GpsUpdatePayload) => {
-    store.updateVehicleGps(data);
+    useLiveOpsStore.getState().updateVehicleGps(data);
   });
 
   // Subscribe to tenant tracking room on mount
@@ -32,30 +31,45 @@ export function useLiveData() {
   }, []);
 
   const loadAllData = useCallback(async () => {
-    try {
-      const [fleet, tps, schedules, kpis, heatmap] = await Promise.all([
-        fetchFleetPositions(),
-        fetchTpsMapSummary(),
-        fetchActiveSchedules(),
-        fetchDashboardKPIs(),
-        fetchWasteHeatmap(),
-      ]);
+    const results = await Promise.allSettled([
+      fetchFleetPositions(),
+      fetchTpsMapSummary(),
+      fetchActiveSchedules(),
+      fetchDashboardKPIs(),
+      fetchWasteHeatmap(),
+    ]);
 
+    const store = useLiveOpsStore.getState();
+
+    const fleet = results[0].status === 'fulfilled' ? results[0].value : null;
+    const tps = results[1].status === 'fulfilled' ? results[1].value : null;
+    const schedules = results[2].status === 'fulfilled' ? results[2].value : null;
+    const kpis = results[3].status === 'fulfilled' ? results[3].value : null;
+    const heatmap = results[4].status === 'fulfilled' ? results[4].value : null;
+
+    if (fleet) {
       const vehiclesWithStatus: VehicleWithStatus[] = fleet.map((v) => ({
         ...v,
         status: deriveVehicleStatus(v.speed, v.last_update),
       }));
-
       store.setVehicles(vehiclesWithStatus);
-      store.setTpsLocations(tps);
-      store.setActiveSchedules(schedules);
-      store.setKpis(kpis);
-      store.setHeatmapData(heatmap);
 
-      const alerts = generateAlerts(vehiclesWithStatus, tps);
-      store.setAlerts(alerts);
-    } catch (err) {
-      console.error('Failed to load live operations data:', err);
+      if (tps) {
+        const newAlerts = generateAlerts(vehiclesWithStatus, tps);
+        mergeAlerts(store, newAlerts);
+      }
+    }
+
+    if (tps) store.setTpsLocations(tps);
+    if (schedules) store.setActiveSchedules(schedules);
+    if (kpis) store.setKpis(kpis);
+    if (heatmap) store.setHeatmapData(heatmap);
+
+    // Log any failures
+    for (const r of results) {
+      if (r.status === 'rejected') {
+        console.error('Failed to load live operations data:', r.reason);
+      }
     }
   }, []);
 
@@ -69,6 +83,23 @@ export function useLiveData() {
   }, [loadAllData]);
 
   return { refresh: loadAllData };
+}
+
+/** Merge new alerts with existing, preserving acknowledgment state */
+function mergeAlerts(
+  store: ReturnType<typeof useLiveOpsStore.getState>,
+  newAlerts: LiveAlert[],
+) {
+  const existing = store.alerts;
+  const acknowledgedIds = new Set(
+    existing.filter((a) => a.acknowledged).map((a) => a.id),
+  );
+
+  const merged = newAlerts.map((a) =>
+    acknowledgedIds.has(a.id) ? { ...a, acknowledged: true } : a,
+  );
+
+  store.setAlerts(merged);
 }
 
 function generateAlerts(

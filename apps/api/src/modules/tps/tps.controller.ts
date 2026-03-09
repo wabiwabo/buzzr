@@ -41,6 +41,7 @@ export class TpsController {
   }
 
   @Get('map-summary')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   getMapSummary(@Req() req: Request) {
     return this.tpsService.getMapSummary(req.tenantSchema!);
   }

@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@buzzr/shared-types';
+import { SendPushDto } from './dto/send-push.dto';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -12,8 +13,8 @@ export class NotificationController {
 
   @Post('push')
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
-  sendPush(@Body() body: { driverId: string; title: string; body: string; type?: string }, @Req() req: any) {
-    return this.notificationService.sendPushToDriver(req.tenantSchema, body);
+  sendPush(@Body() dto: SendPushDto, @Req() req: any) {
+    return this.notificationService.sendPushToDriver(req.tenantSchema, dto);
   }
 
   @Get()

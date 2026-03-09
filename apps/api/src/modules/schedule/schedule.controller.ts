@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto, AddStopDto } from './dto/create-schedule.dto';
+import { ReassignScheduleDto } from './dto/reassign-schedule.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -60,10 +61,10 @@ export class ScheduleController {
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   reassign(
     @Param('id') id: string,
-    @Body() body: { driverId: string; vehicleId: string },
+    @Body() dto: ReassignScheduleDto,
     @Req() req: Request,
   ) {
-    return this.scheduleService.reassignSchedule(req.tenantSchema!, id, body);
+    return this.scheduleService.reassignSchedule(req.tenantSchema!, id, dto);
   }
 
   @Patch(':id/status')
