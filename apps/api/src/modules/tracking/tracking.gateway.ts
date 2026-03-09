@@ -21,6 +21,16 @@ export class TrackingGateway {
       longitude: data.longitude,
       speed: data.speed,
     });
+
+    // Broadcast to all subscribers in this tenant's tracking room
+    this.server.to(`tracking:${data.tenantSchema}`).emit('gps:position', {
+      vehicleId: data.vehicleId,
+      driverId: data.driverId,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      speed: data.speed,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   @SubscribeMessage('tracking:subscribe')
