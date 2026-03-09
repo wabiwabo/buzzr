@@ -8,13 +8,15 @@ interface HighlightProps {
 export const Highlight: React.FC<HighlightProps> = ({ text, query }) => {
   if (!query || query.length < 2) return <>{text}</>;
 
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  const parts = text.split(regex);
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const splitRegex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(splitRegex);
+  const lowerQuery = query.toLowerCase();
 
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part) ? (
+        part.toLowerCase() === lowerQuery ? (
           <mark key={i} className="bg-yellow-200/60 dark:bg-yellow-500/30 rounded-sm px-0.5">
             {part}
           </mark>

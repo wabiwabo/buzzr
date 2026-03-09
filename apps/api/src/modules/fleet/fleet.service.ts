@@ -64,7 +64,7 @@ export class FleetService {
       countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".vehicles v`,
       baseConditions: ['v.is_active = $1'],
       baseParams: [true],
-      searchableColumns: ['v.plate_number'],
+      searchableColumns: ['v.plate_number', 'u.name'],
       sortableColumns: ['v.plate_number', 'v.type', 'v.created_at'],
       filterableColumns: ['v.type'],
       defaultSort: 'v.plate_number',

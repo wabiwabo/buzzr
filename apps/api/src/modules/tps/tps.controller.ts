@@ -27,6 +27,7 @@ export class TpsController {
   }
 
   @Get('paginated')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   listPaginated(
     @Req() req: Request,
     @Query() query: PaginationQueryDto,
