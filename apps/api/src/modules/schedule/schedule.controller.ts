@@ -39,6 +39,12 @@ export class ScheduleController {
     return this.scheduleService.listSchedulesPaginated(req.tenantSchema!, query, filters);
   }
 
+  @Get('active')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  getActive(@Req() req: Request) {
+    return this.scheduleService.getActiveSchedules(req.tenantSchema!);
+  }
+
   @Get('today')
   @Roles(UserRole.DRIVER)
   getToday(@Req() req: any) {
@@ -48,6 +54,16 @@ export class ScheduleController {
   @Get(':id')
   getById(@Param('id') id: string, @Req() req: Request) {
     return this.scheduleService.getScheduleById(req.tenantSchema!, id);
+  }
+
+  @Patch(':id/reassign')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  reassign(
+    @Param('id') id: string,
+    @Body() body: { driverId: string; vehicleId: string },
+    @Req() req: Request,
+  ) {
+    return this.scheduleService.reassignSchedule(req.tenantSchema!, id, body);
   }
 
   @Patch(':id/status')

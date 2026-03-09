@@ -94,4 +94,58 @@ describe('ScheduleService', () => {
       expect(result).toHaveLength(1);
     });
   });
+
+  describe('getActiveSchedules', () => {
+    it('should return today active schedules for all drivers with stops', async () => {
+      dataSource.query.mockResolvedValue([
+        {
+          id: 's-1',
+          route_name: 'Rute Selatan',
+          schedule_type: 'recurring',
+          status: 'in_progress',
+          start_time: '07:00:00',
+          driver_id: 'd-1',
+          driver_name: 'Ahmad',
+          vehicle_id: 'v-1',
+          vehicle_plate: 'B 1234 CD',
+          stops: [
+            { id: 'st-1', tps_id: 't-1', tps_name: 'TPS Merdeka', stop_order: 1, estimated_arrival: '07:30:00' },
+          ],
+        },
+      ]);
+
+      const result = await service.getActiveSchedules('dlh_demo');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].driver_name).toBe('Ahmad');
+      expect(result[0].vehicle_plate).toBe('B 1234 CD');
+      expect(result[0].stops).toHaveLength(1);
+    });
+  });
+
+  describe('reassignSchedule', () => {
+    it('should reassign schedule to new driver and vehicle', async () => {
+      dataSource.query.mockResolvedValue([{
+        id: 's-1',
+        driver_id: 'd-2',
+        vehicle_id: 'v-2',
+      }]);
+
+      const result = await service.reassignSchedule('dlh_demo', 's-1', {
+        driverId: 'd-2',
+        vehicleId: 'v-2',
+      });
+
+      expect(result.driver_id).toBe('d-2');
+      expect(result.vehicle_id).toBe('v-2');
+    });
+
+    it('should throw if schedule not found', async () => {
+      dataSource.query.mockResolvedValue([]);
+
+      await expect(
+        service.reassignSchedule('dlh_demo', 's-999', { driverId: 'd-2', vehicleId: 'v-2' }),
+      ).rejects.toThrow('Jadwal tidak ditemukan');
+    });
+  });
 });

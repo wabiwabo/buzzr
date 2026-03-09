@@ -84,6 +84,53 @@ export class ScheduleService {
     return result[0];
   }
 
+  async getActiveSchedules(tenantSchema: string) {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+
+    return this.dataSource.query(
+      `SELECT s.id, s.route_name, s.schedule_type, s.status, s.start_time,
+              s.driver_id, u.name as driver_name,
+              s.vehicle_id, v.plate_number as vehicle_plate,
+              json_agg(
+                json_build_object(
+                  'id', ss.id, 'tps_id', ss.tps_id,
+                  'tps_name', t.name,
+                  'stop_order', ss.stop_order,
+                  'estimated_arrival', ss.estimated_arrival
+                ) ORDER BY ss.stop_order
+              ) FILTER (WHERE ss.id IS NOT NULL) as stops
+       FROM "${tenantSchema}".schedules s
+       LEFT JOIN "${tenantSchema}".users u ON s.driver_id = u.id
+       LEFT JOIN "${tenantSchema}".vehicles v ON s.vehicle_id = v.id
+       LEFT JOIN "${tenantSchema}".schedule_stops ss ON s.id = ss.schedule_id
+       LEFT JOIN "${tenantSchema}".tps_locations t ON ss.tps_id = t.id
+       WHERE (
+         (s.schedule_type = 'recurring' AND $1 = ANY(s.recurring_days))
+         OR (s.schedule_type = 'on_demand' AND s.scheduled_date = CURRENT_DATE)
+       )
+       GROUP BY s.id, u.name, v.plate_number
+       ORDER BY s.start_time`,
+      [dayOfWeek],
+    );
+  }
+
+  async reassignSchedule(
+    tenantSchema: string,
+    scheduleId: string,
+    data: { driverId: string; vehicleId: string },
+  ) {
+    const result = await this.dataSource.query(
+      `UPDATE "${tenantSchema}".schedules
+       SET driver_id = $1, vehicle_id = $2
+       WHERE id = $3
+       RETURNING *`,
+      [data.driverId, data.vehicleId, scheduleId],
+    );
+    if (!result.length) throw new NotFoundException('Jadwal tidak ditemukan');
+    return result[0];
+  }
+
   async getScheduleById(tenantSchema: string, id: string) {
     const result = await this.dataSource.query(
       `SELECT s.*, json_agg(
