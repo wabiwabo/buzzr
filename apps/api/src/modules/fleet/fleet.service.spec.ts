@@ -72,4 +72,35 @@ describe('FleetService', () => {
       expect(result[0].driver_name).toBe('John');
     });
   });
+
+  describe('getFleetPositions', () => {
+    it('should return all active vehicles with latest GPS position', async () => {
+      dataSource.query.mockResolvedValue([
+        {
+          id: 'v-1',
+          plate_number: 'B 1234 CD',
+          type: 'truk',
+          capacity_tons: 8,
+          driver_id: 'd-1',
+          driver_name: 'Ahmad',
+          driver_phone: '08123456789',
+          latitude: -6.9175,
+          longitude: 107.6191,
+          speed: 25.5,
+          last_update: '2026-03-09T10:00:00Z',
+        },
+      ]);
+
+      const result = await service.getFleetPositions('dlh_demo');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].plate_number).toBe('B 1234 CD');
+      expect(result[0].latitude).toBe(-6.9175);
+      expect(result[0].driver_name).toBe('Ahmad');
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('DISTINCT ON (vehicle_id)'),
+        [],
+      );
+    });
+  });
 });

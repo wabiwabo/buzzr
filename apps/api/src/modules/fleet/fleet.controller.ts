@@ -33,6 +33,12 @@ export class FleetController {
     return this.fleetService.listVehiclesPaginated(req.tenantSchema!, query, filters);
   }
 
+  @Get('positions')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  getPositions(@Req() req: Request) {
+    return this.fleetService.getFleetPositions(req.tenantSchema!);
+  }
+
   @Get()
   list(@Req() req: Request, @Query('type') type?: string) {
     return this.fleetService.listVehicles(req.tenantSchema!, { type });

@@ -79,6 +79,28 @@ export class FleetService {
     });
   }
 
+  async getFleetPositions(tenantSchema: string) {
+    return this.dataSource.query(
+      `SELECT v.id, v.plate_number, v.type, v.capacity_tons, v.driver_id, v.is_active,
+              u.name as driver_name, u.phone as driver_phone,
+              gl.latitude, gl.longitude, gl.speed, gl.last_update
+       FROM "${tenantSchema}".vehicles v
+       LEFT JOIN "${tenantSchema}".users u ON v.driver_id = u.id
+       LEFT JOIN LATERAL (
+         SELECT DISTINCT ON (vehicle_id)
+                ST_Y(coordinates::geometry) as latitude,
+                ST_X(coordinates::geometry) as longitude,
+                speed, recorded_at as last_update, vehicle_id
+         FROM "${tenantSchema}".gps_logs
+         WHERE vehicle_id = v.id
+         ORDER BY vehicle_id, recorded_at DESC
+       ) gl ON true
+       WHERE v.is_active = true
+       ORDER BY v.plate_number`,
+      [],
+    );
+  }
+
   async getVehicleById(tenantSchema: string, id: string) {
     const result = await this.dataSource.query(
       `SELECT v.*, u.name as driver_name
