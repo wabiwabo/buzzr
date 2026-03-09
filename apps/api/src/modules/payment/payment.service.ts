@@ -88,7 +88,7 @@ export class PaymentService {
   ): Promise<PaginatedResponse<any>> {
     return buildPaginatedQuery(this.dataSource, {
       baseQuery: `SELECT t.id, t.type, t.amount, t.status, t.reference_id, t.description, t.created_at, t.paid_at, t.expired_at, u.name as user_name FROM "${tenantSchema}".transactions t LEFT JOIN "${tenantSchema}".users u ON t.user_id = u.id`,
-      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".transactions t`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".transactions t LEFT JOIN "${tenantSchema}".users u ON t.user_id = u.id`,
       searchableColumns: ['t.reference_id', 'u.name'],
       sortableColumns: ['t.created_at', 't.amount', 't.status', 't.type'],
       filterableColumns: ['t.type', 't.status'],

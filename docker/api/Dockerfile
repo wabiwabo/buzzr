@@ -58,11 +58,6 @@ COPY --from=builder /app/packages/shared-types/dist packages/shared-types/dist
 COPY --from=builder /app/packages/constants/dist packages/constants/dist
 COPY --from=builder /app/packages/validators/dist packages/validators/dist
 
-# Copy package source (needed for packages with main pointing to src)
-COPY --from=builder /app/packages/shared-types/src packages/shared-types/src
-COPY --from=builder /app/packages/constants/src packages/constants/src
-COPY --from=builder /app/packages/validators/src packages/validators/src
-
 ENV NODE_ENV=production
 EXPOSE 3000
 
