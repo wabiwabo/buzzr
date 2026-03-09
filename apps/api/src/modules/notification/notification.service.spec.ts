@@ -42,4 +42,26 @@ describe('NotificationService', () => {
       expect(result.is_read).toBe(true);
     });
   });
+
+  describe('sendPushToDriver', () => {
+    it('should create a notification for the driver', async () => {
+      dataSource.query.mockResolvedValue([{
+        id: 'n-1',
+        user_id: 'd-1',
+        title: 'Rute baru ditugaskan',
+        body: 'Anda ditugaskan ke Rute Selatan',
+        type: 'dispatch',
+      }]);
+
+      const result = await service.sendPushToDriver('dlh_demo', {
+        driverId: 'd-1',
+        title: 'Rute baru ditugaskan',
+        body: 'Anda ditugaskan ke Rute Selatan',
+        type: 'dispatch',
+      });
+
+      expect(result.user_id).toBe('d-1');
+      expect(result.title).toBe('Rute baru ditugaskan');
+    });
+  });
 });

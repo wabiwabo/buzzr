@@ -38,6 +38,15 @@ export class NotificationService {
     return result[0];
   }
 
+  async sendPushToDriver(tenantSchema: string, data: { driverId: string; title: string; body: string; type?: string }) {
+    return this.createNotification(tenantSchema, {
+      userId: data.driverId,
+      title: data.title,
+      body: data.body,
+      type: data.type || 'dispatch',
+    });
+  }
+
   async markAllAsRead(tenantSchema: string, userId: string) {
     await this.dataSource.query(
       `UPDATE "${tenantSchema}".notifications SET is_read = true WHERE user_id = $1 AND is_read = false`,
