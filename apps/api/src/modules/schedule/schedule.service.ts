@@ -63,8 +63,8 @@ export class ScheduleService {
       searchableColumns: ['s.route_name'],
       sortableColumns: ['s.start_time', 's.created_at', 's.route_name', 's.schedule_type', 's.status'],
       filterableColumns: ['s.schedule_type', 's.status'],
-      defaultSort: 's.created_at',
-      defaultOrder: 'desc',
+      defaultSort: 's.start_time',
+      defaultOrder: 'asc',
     }, {
       page: query.page,
       limit: query.limit,

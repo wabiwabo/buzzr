@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Eye, MoreHorizontal } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useForm } from 'react-hook-form';
@@ -84,23 +84,21 @@ const UserPage: React.FC = () => {
     defaultValues: { name: '', role: '', email: '', password: '', phone: '', areaId: '' },
   });
 
+  const searchTextRef = useRef('');
+
   const columnDefs = useMemo(() => [
     columnHelper.accessor('name', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Nama" />,
-      cell: ({ getValue, table }) => {
-        const searchText = (table.options.meta as any)?.searchText ?? '';
-        return <Highlight text={getValue()} query={searchText} />;
-      },
+      cell: ({ getValue }) => <Highlight text={getValue()} query={searchTextRef.current} />,
       size: 160,
       enableSorting: true,
     }),
     columnHelper.accessor('email', {
       id: 'contact',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Email / HP" />,
-      cell: ({ row, table }) => {
-        const searchText = (table.options.meta as any)?.searchText ?? '';
+      cell: ({ row }) => {
         const value = row.original.email || row.original.phone || '-';
-        return <Highlight text={value} query={searchText} />;
+        return <Highlight text={value} query={searchTextRef.current} />;
       },
       size: 180,
       enableSorting: false,
@@ -161,6 +159,8 @@ const UserPage: React.FC = () => {
     defaultSort: { field: 'name', order: 'asc' },
     filterDefs: userFilterDefs,
   });
+
+  searchTextRef.current = searchText;
 
   const handleCreate = async (values: CreateUserForm) => {
     setSubmitting(true);

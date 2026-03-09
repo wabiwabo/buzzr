@@ -1,13 +1,11 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { DataTable, DataTableColumnHeader, Highlight } from '@/components/data-table';
 import type { FilterDef } from '@/components/data-table';
 import { useServerTable } from '@/hooks/useServerTable';
 import { useDataTableKeyboard } from '@/hooks/useDataTableKeyboard';
-import { PageHeader, StatusBadge, PageTransition } from '@/components/common';
-import { STATUS_LABELS } from '@/theme/tokens';
+import { PageHeader, PageTransition } from '@/components/common';
 
 interface Vehicle {
   id: string;
@@ -16,7 +14,7 @@ interface Vehicle {
   capacity_tons: number;
   driver_id: string | null;
   driver_name: string | null;
-  status: string;
+  is_active: boolean;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -26,7 +24,6 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
-const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: label as string }));
 
 const fleetFilterDefs: FilterDef[] = [
   { key: 'v.type', label: 'Tipe', type: 'select', options: typeOptions },
@@ -70,9 +67,13 @@ export default function FleetTriagePage() {
       ),
       enableSorting: false,
     }),
-    columnHelper.accessor('status', {
+    columnHelper.accessor('is_active', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: (info) => <StatusBadge status={info.getValue()} />,
+      cell: (info) => (
+        <Badge variant={info.getValue() ? 'default' : 'secondary'} className="text-xs">
+          {info.getValue() ? 'Aktif' : 'Nonaktif'}
+        </Badge>
+      ),
       enableSorting: false,
     }),
   ], []);
@@ -112,7 +113,9 @@ export default function FleetTriagePage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Status</span>
-            <StatusBadge status={selectedVehicle.status} />
+            <Badge variant={selectedVehicle.is_active ? 'default' : 'secondary'}>
+              {selectedVehicle.is_active ? 'Aktif' : 'Nonaktif'}
+            </Badge>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Pengemudi</span>

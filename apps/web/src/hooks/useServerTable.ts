@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
   type ColumnDef,
   type SortingState,
   type RowSelectionState,
@@ -196,7 +195,6 @@ export function useServerTable<T>(options: UseServerTableOptions<T>): UseServerT
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     manualSorting: true,
     pageCount: meta.totalPages,
