@@ -5,7 +5,7 @@ import { TrackingService } from './tracking.service';
 @WebSocketGateway({ namespace: '/tracking', cors: { origin: '*' } })
 export class TrackingGateway {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(private readonly trackingService: TrackingService) {}
 
