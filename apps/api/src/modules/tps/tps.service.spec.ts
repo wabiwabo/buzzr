@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TpsService } from './tps.service';
 import { DataSource } from 'typeorm';
-import { TpsType, WasteCategory } from '@buzzr/shared-types';
+import { TpsType, TpsStatus, WasteCategory } from '@buzzr/shared-types';
+import { NotFoundException } from '@nestjs/common';
 
 describe('TpsService', () => {
   let service: TpsService;
@@ -83,11 +84,46 @@ describe('TpsService', () => {
         .mockResolvedValueOnce([{ ...mockTps, status: 'full' }]); // UPDATE
 
       const result = await service.updateTps('test_schema', 'tps-1', {
-        status: 'full' as any,
+        status: TpsStatus.FULL,
       });
 
       expect(result.status).toBe('full');
       expect(dataSource.query).toHaveBeenCalledTimes(2);
+    });
+
+    it('should update coordinates with ST_MakePoint', async () => {
+      const mockTps = { id: 'tps-1', name: 'TPS Test', latitude: -6.2, longitude: 106.8 };
+      dataSource.query
+        .mockResolvedValueOnce([mockTps])  // getTpsById check
+        .mockResolvedValueOnce([{ ...mockTps, latitude: -6.3, longitude: 106.9 }]); // UPDATE
+
+      const result = await service.updateTps('test_schema', 'tps-1', {
+        latitude: -6.3,
+        longitude: 106.9,
+      });
+
+      expect(result.latitude).toBe(-6.3);
+      const updateCall = dataSource.query.mock.calls[1];
+      expect(updateCall[0]).toContain('ST_SetSRID(ST_MakePoint');
+      expect(updateCall[1]).toEqual([106.9, -6.3, 'tps-1']);
+    });
+
+    it('should return existing TPS when no fields provided', async () => {
+      const mockTps = { id: 'tps-1', name: 'TPS Test', status: 'active' };
+      dataSource.query.mockResolvedValueOnce([mockTps]); // getTpsById (first call)
+      dataSource.query.mockResolvedValueOnce([mockTps]); // getTpsById (return)
+
+      const result = await service.updateTps('test_schema', 'tps-1', {});
+
+      expect(result.name).toBe('TPS Test');
+    });
+
+    it('should throw NotFoundException for non-existent TPS', async () => {
+      dataSource.query.mockResolvedValueOnce([]); // getTpsById returns empty
+
+      await expect(
+        service.updateTps('test_schema', 'nonexistent', { status: TpsStatus.FULL }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

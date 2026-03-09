@@ -6,22 +6,11 @@ import type { LatLngBounds } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { TpsItem } from '../types';
+import { TPS_TYPE_LABELS, TPS_STATUS_LABELS } from '../types';
 import { CapacityBar } from './CapacityBar';
 
 const DEFAULT_CENTER: [number, number] = [-6.2088, 106.8456]; // Jakarta
 const DEFAULT_ZOOM = 12;
-
-const TYPE_LABELS: Record<string, string> = {
-  tps: 'TPS',
-  tps3r: 'TPS3R',
-  bank_sampah: 'Bank Sampah',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktif',
-  full: 'Penuh',
-  maintenance: 'Pemeliharaan',
-};
 
 function fillColor(pct: number, status: string): string {
   if (status === 'maintenance') return '#9CA3AF';
@@ -140,7 +129,7 @@ export const TpsMap: React.FC<TpsMapProps> = ({
                   <div>
                     <p className="font-semibold text-sm">{t.name}</p>
                     <p className="text-xs text-gray-500">
-                      {TYPE_LABELS[t.type] || t.type} · {STATUS_LABELS[t.status] || t.status}
+                      {TPS_TYPE_LABELS[t.type] || t.type} · {TPS_STATUS_LABELS[t.status] || t.status}
                     </p>
                   </div>
                   <CapacityBar current={t.current_load_tons} max={t.capacity_tons} />

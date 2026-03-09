@@ -19,7 +19,7 @@ const TABS: { id: TpsTab; label: string; icon: React.ElementType }[] = [
 
 const TpsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeTab, setActiveTab, setAllTps, setLoading, allTps } = useTpsPageStore();
+  const { activeTab, setActiveTab, setAllTps, setLoading, dataVersion } = useTpsPageStore();
 
   // Sync tab from URL
   useEffect(() => {
@@ -49,15 +49,7 @@ const TpsPage: React.FC = () => {
 
   useEffect(() => {
     loadMapData();
-  }, [loadMapData]);
-
-  // Reload when store signals (e.g., after form submit)
-  const { isLoading } = useTpsPageStore();
-  useEffect(() => {
-    if (isLoading && allTps.length > 0) {
-      loadMapData();
-    }
-  }, [isLoading]);
+  }, [loadMapData, dataVersion]);
 
   return (
     <PageTransition>
@@ -70,12 +62,16 @@ const TpsPage: React.FC = () => {
 
         {/* Tabs */}
         <div className="border-b mb-4">
-          <nav className="flex gap-0" aria-label="Tabs">
+          <div className="flex gap-0" role="tablist" aria-label="TPS Tabs">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`tabpanel-${tab.id}`}
+                  id={`tab-${tab.id}`}
                   onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     isActive
@@ -88,13 +84,15 @@ const TpsPage: React.FC = () => {
                 </button>
               );
             })}
-          </nav>
+          </div>
         </div>
 
         {/* Tab content */}
-        {activeTab === 'peta' && <MapTab />}
-        {activeTab === 'kelola' && <ManageTab />}
-        {activeTab === 'analitik' && <AnalyticsTab />}
+        <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
+          {activeTab === 'peta' && <MapTab />}
+          {activeTab === 'kelola' && <ManageTab />}
+          {activeTab === 'analitik' && <AnalyticsTab />}
+        </div>
       </div>
     </PageTransition>
   );

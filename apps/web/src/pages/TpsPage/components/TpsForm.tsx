@@ -14,17 +14,23 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { createTps, updateTps } from '../api';
 import type { TpsItem } from '../types';
+import { TPS_TYPE_OPTIONS } from '../types';
 
-const TYPE_OPTIONS = [
-  { value: 'tps', label: 'TPS' },
-  { value: 'tps3r', label: 'TPS3R' },
-  { value: 'bank_sampah', label: 'Bank Sampah' },
-];
+interface TpsFormData {
+  id: string;
+  name: string;
+  type: string;
+  address: string;
+  capacity_tons: number;
+  latitude: number;
+  longitude: number;
+  area_id: string;
+}
 
 interface TpsFormProps {
   open: boolean;
   onClose: () => void;
-  tps?: TpsItem | null;
+  tps?: TpsFormData | null;
   onSuccess: () => void;
 }
 
@@ -89,7 +95,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({ open, onClose, tps, onSuccess 
         await updateTps(tps!.id, body);
         toast.success('TPS berhasil diperbarui');
       } else {
-        await createTps(body as any);
+        await createTps(body);
         toast.success('TPS berhasil ditambahkan');
       }
       onSuccess();
@@ -129,7 +135,7 @@ export const TpsForm: React.FC<TpsFormProps> = ({ open, onClose, tps, onSuccess 
               onChange={(e) => update('type', e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              {TYPE_OPTIONS.map((opt) => (
+              {TPS_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

@@ -21,7 +21,7 @@ export async function createTps(body: {
   address: string;
   latitude: number;
   longitude: number;
-  areaId: string;
+  areaId?: string;
   capacityTons: number;
 }): Promise<TpsItem> {
   const { data } = await api.post('/tps', body);

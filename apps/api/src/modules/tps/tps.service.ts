@@ -104,7 +104,7 @@ export class TpsService {
 
   async getMapSummary(tenantSchema: string) {
     const results = await this.dataSource.query(
-      `SELECT id, name, type, status, capacity_tons, current_load_tons,
+      `SELECT id, name, type, status, address, capacity_tons, current_load_tons,
               ST_Y(coordinates::geometry) as latitude,
               ST_X(coordinates::geometry) as longitude
        FROM "${tenantSchema}".tps_locations
@@ -175,7 +175,9 @@ export class TpsService {
       params.push(dto.capacityTons);
     }
     if (dto.latitude !== undefined && dto.longitude !== undefined) {
-      setClauses.push(`coordinates = ST_SetSRID(ST_MakePoint($${paramIndex++}, $${paramIndex++}), 4326)`);
+      const lngIdx = paramIndex++;
+      const latIdx = paramIndex++;
+      setClauses.push(`coordinates = ST_SetSRID(ST_MakePoint($${lngIdx}, $${latIdx}), 4326)`);
       params.push(dto.longitude, dto.latitude);
     }
 

@@ -18,14 +18,9 @@ import { TpsMap } from '../components/TpsMap';
 import { TpsForm } from '../components/TpsForm';
 import { useTpsPageStore } from '../store';
 import type { TpsItem } from '../types';
+import { TPS_TYPE_LABELS, TPS_TYPE_OPTIONS } from '../types';
 
-const TYPE_LABELS: Record<string, string> = {
-  tps: 'TPS',
-  tps3r: 'TPS3R',
-  bank_sampah: 'Bank Sampah',
-};
-
-const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
+const typeOptions = TPS_TYPE_OPTIONS;
 const statusOptions = Object.entries(STATUS_LABELS)
   .filter(([k]) => ['active', 'full', 'maintenance'].includes(k))
   .map(([value, label]) => ({ value, label: label as string }));
@@ -73,7 +68,7 @@ export const ManageTab: React.FC = () => {
         header: ({ column }) => <DataTableColumnHeader column={column} title="Tipe" />,
         cell: (info) => (
           <Badge variant="outline" className="text-xs">
-            {TYPE_LABELS[info.getValue()] || info.getValue()}
+            {TPS_TYPE_LABELS[info.getValue()] || info.getValue()}
           </Badge>
         ),
       }),
@@ -161,8 +156,7 @@ export const ManageTab: React.FC = () => {
 
   const handleFormSuccess = () => {
     refetch();
-    // Also refresh store data
-    useTpsPageStore.getState().setLoading(true);
+    useTpsPageStore.getState().invalidateData();
   };
 
   const renderPreview = useCallback(() => {
@@ -191,7 +185,7 @@ export const ManageTab: React.FC = () => {
         <div>
           <h3 className="font-medium text-sm">{selectedTps.name}</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            {TYPE_LABELS[selectedTps.type] || selectedTps.type}
+            {TPS_TYPE_LABELS[selectedTps.type] || selectedTps.type}
           </p>
         </div>
 
@@ -331,7 +325,7 @@ export const ManageTab: React.FC = () => {
       <TpsForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditTps(null); }}
-        tps={editTps as any}
+        tps={editTps}
         onSuccess={handleFormSuccess}
       />
     </>

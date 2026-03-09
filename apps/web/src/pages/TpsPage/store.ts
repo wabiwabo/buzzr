@@ -10,6 +10,7 @@ interface TpsPageState {
   mapFilterTypes: Set<string>;
   mapFilterStatuses: Set<string>;
   isLoading: boolean;
+  dataVersion: number;
 
   setAllTps: (tps: TpsItem[]) => void;
   selectTps: (id: string | null) => void;
@@ -17,6 +18,7 @@ interface TpsPageState {
   toggleMapFilterType: (type: string) => void;
   toggleMapFilterStatus: (status: string) => void;
   setLoading: (loading: boolean) => void;
+  invalidateData: () => void;
 }
 
 export const useTpsPageStore = create<TpsPageState>((set) => ({
@@ -26,6 +28,7 @@ export const useTpsPageStore = create<TpsPageState>((set) => ({
   mapFilterTypes: new Set<string>(),
   mapFilterStatuses: new Set<string>(),
   isLoading: false,
+  dataVersion: 0,
 
   setAllTps: (allTps) => set({ allTps }),
   selectTps: (selectedTpsId) => set({ selectedTpsId }),
@@ -45,6 +48,7 @@ export const useTpsPageStore = create<TpsPageState>((set) => ({
       return { mapFilterStatuses: next };
     }),
   setLoading: (isLoading) => set({ isLoading }),
+  invalidateData: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
 }));
 
 export function computeAnalytics(tps: TpsItem[]): TpsAnalytics {

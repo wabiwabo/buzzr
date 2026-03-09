@@ -29,3 +29,23 @@ export interface TpsAnalytics {
 }
 
 export type TpsTab = 'peta' | 'kelola' | 'analitik';
+
+export const TPS_TYPE_LABELS: Record<string, string> = {
+  tps: 'TPS',
+  tps3r: 'TPS3R',
+  bank_sampah: 'Bank Sampah',
+};
+
+export const TPS_STATUS_LABELS: Record<string, string> = {
+  active: 'Aktif',
+  full: 'Penuh',
+  maintenance: 'Pemeliharaan',
+};
+
+export const TPS_TYPE_OPTIONS = Object.entries(TPS_TYPE_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
+
+export const TPS_STATUS_OPTIONS = Object.entries(TPS_STATUS_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);

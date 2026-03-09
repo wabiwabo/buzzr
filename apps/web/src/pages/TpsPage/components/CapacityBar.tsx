@@ -27,6 +27,11 @@ export const CapacityBar: React.FC<CapacityBarProps> = ({
   return (
     <div className="flex items-center gap-2">
       <div
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Kapasitas ${pct}%`}
         className={cn(
           'flex-1 rounded-full bg-gray-200 overflow-hidden',
           size === 'sm' ? 'h-1.5' : 'h-2.5',

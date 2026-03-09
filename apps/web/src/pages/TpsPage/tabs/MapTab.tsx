@@ -4,19 +4,8 @@ import React, { useMemo } from 'react';
 import { useTpsPageStore, computeAnalytics } from '../store';
 import { TpsKpiBar } from '../components/TpsKpiBar';
 import { TpsMap } from '../components/TpsMap';
+import { TPS_TYPE_OPTIONS, TPS_STATUS_OPTIONS } from '../types';
 import { Badge } from '@/components/ui/badge';
-
-const TYPE_OPTIONS = [
-  { value: 'tps', label: 'TPS' },
-  { value: 'tps3r', label: 'TPS3R' },
-  { value: 'bank_sampah', label: 'Bank Sampah' },
-];
-
-const STATUS_OPTIONS = [
-  { value: 'active', label: 'Aktif' },
-  { value: 'full', label: 'Penuh' },
-  { value: 'maintenance', label: 'Pemeliharaan' },
-];
 
 export const MapTab: React.FC = () => {
   const {
@@ -62,27 +51,45 @@ export const MapTab: React.FC = () => {
       {/* Filter chips */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-muted-foreground mr-1">Tipe:</span>
-        {TYPE_OPTIONS.map((opt) => (
-          <Badge
-            key={opt.value}
-            variant={mapFilterTypes.has(opt.value) ? 'default' : 'outline'}
-            className="cursor-pointer text-xs"
-            onClick={() => toggleMapFilterType(opt.value)}
-          >
-            {opt.label}
-          </Badge>
-        ))}
+        {TPS_TYPE_OPTIONS.map((opt) => {
+          const active = mapFilterTypes.has(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="checkbox"
+              aria-checked={active}
+              onClick={() => toggleMapFilterType(opt.value)}
+            >
+              <Badge
+                variant={active ? 'default' : 'outline'}
+                className="cursor-pointer text-xs"
+              >
+                {opt.label}
+              </Badge>
+            </button>
+          );
+        })}
         <span className="text-xs text-muted-foreground ml-3 mr-1">Status:</span>
-        {STATUS_OPTIONS.map((opt) => (
-          <Badge
-            key={opt.value}
-            variant={mapFilterStatuses.has(opt.value) ? 'default' : 'outline'}
-            className="cursor-pointer text-xs"
-            onClick={() => toggleMapFilterStatus(opt.value)}
-          >
-            {opt.label}
-          </Badge>
-        ))}
+        {TPS_STATUS_OPTIONS.map((opt) => {
+          const active = mapFilterStatuses.has(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              role="checkbox"
+              aria-checked={active}
+              onClick={() => toggleMapFilterStatus(opt.value)}
+            >
+              <Badge
+                variant={active ? 'default' : 'outline'}
+                className="cursor-pointer text-xs"
+              >
+                {opt.label}
+              </Badge>
+            </button>
+          );
+        })}
       </div>
 
       {/* Map */}

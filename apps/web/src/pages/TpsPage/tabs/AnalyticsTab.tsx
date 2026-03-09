@@ -7,20 +7,9 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTpsPageStore, computeAnalytics } from '../store';
+import { TPS_TYPE_LABELS, TPS_STATUS_LABELS } from '../types';
 import { TpsKpiBar } from '../components/TpsKpiBar';
 import { CapacityBar } from '../components/CapacityBar';
-
-const TYPE_LABELS: Record<string, string> = {
-  tps: 'TPS',
-  tps3r: 'TPS3R',
-  bank_sampah: 'Bank Sampah',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: 'Aktif',
-  full: 'Penuh',
-  maintenance: 'Pemeliharaan',
-};
 
 const TYPE_COLORS: Record<string, string> = {
   tps: '#3B82F6',
@@ -39,13 +28,13 @@ export const AnalyticsTab: React.FC = () => {
   const analytics = useMemo(() => computeAnalytics(allTps), [allTps]);
 
   const typeData = analytics.byType.map((d) => ({
-    name: TYPE_LABELS[d.type] || d.type,
+    name: TPS_TYPE_LABELS[d.type] || d.type,
     value: d.count,
     fill: TYPE_COLORS[d.type] || '#9CA3AF',
   }));
 
   const statusData = analytics.byStatus.map((d) => ({
-    name: STATUS_LABELS[d.status] || d.status,
+    name: TPS_STATUS_LABELS[d.status] || d.status,
     value: d.count,
     fill: STATUS_COLORS[d.status] || '#9CA3AF',
   }));
