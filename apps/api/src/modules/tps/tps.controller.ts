@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { TpsService } from './tps.service';
 import { CreateTpsDto } from './dto/create-tps.dto';
 import { RecordWasteDto } from './dto/record-waste.dto';
+import { UpdateTpsDto } from './dto/update-tps.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -24,6 +25,16 @@ export class TpsController {
   @Roles(UserRole.TPS_OPERATOR, UserRole.SWEEPER, UserRole.DLH_ADMIN)
   recordWaste(@Body() dto: RecordWasteDto, @Req() req: Request) {
     return this.tpsService.recordWaste(req.tenantSchema!, dto);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTpsDto,
+    @Req() req: Request,
+  ) {
+    return this.tpsService.updateTps(req.tenantSchema!, id, dto);
   }
 
   @Get('paginated')

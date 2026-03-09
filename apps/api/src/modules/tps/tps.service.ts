@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { CreateTpsDto } from './dto/create-tps.dto';
 import { RecordWasteDto } from './dto/record-waste.dto';
+import { UpdateTpsDto } from './dto/update-tps.dto';
 import { randomUUID } from 'crypto';
 import { buildPaginatedQuery } from '../../common/utils/query-builder.util';
 import type { PaginatedResponse } from '../../common/interfaces/paginated-response.interface';
@@ -138,6 +139,64 @@ export class TpsService {
       [id],
     );
     if (!result.length) throw new NotFoundException('TPS tidak ditemukan');
+    return result[0];
+  }
+
+  async updateTps(tenantSchema: string, id: string, dto: UpdateTpsDto) {
+    // Verify TPS exists
+    await this.getTpsById(tenantSchema, id);
+
+    const setClauses: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (dto.name !== undefined) {
+      setClauses.push(`name = $${paramIndex++}`);
+      params.push(dto.name);
+    }
+    if (dto.type !== undefined) {
+      setClauses.push(`type = $${paramIndex++}`);
+      params.push(dto.type);
+    }
+    if (dto.status !== undefined) {
+      setClauses.push(`status = $${paramIndex++}`);
+      params.push(dto.status);
+    }
+    if (dto.address !== undefined) {
+      setClauses.push(`address = $${paramIndex++}`);
+      params.push(dto.address);
+    }
+    if (dto.areaId !== undefined) {
+      setClauses.push(`area_id = $${paramIndex++}`);
+      params.push(dto.areaId);
+    }
+    if (dto.capacityTons !== undefined) {
+      setClauses.push(`capacity_tons = $${paramIndex++}`);
+      params.push(dto.capacityTons);
+    }
+    if (dto.latitude !== undefined && dto.longitude !== undefined) {
+      setClauses.push(`coordinates = ST_SetSRID(ST_MakePoint($${paramIndex++}, $${paramIndex++}), 4326)`);
+      params.push(dto.longitude, dto.latitude);
+    }
+
+    if (setClauses.length === 0) {
+      return this.getTpsById(tenantSchema, id);
+    }
+
+    setClauses.push(`updated_at = NOW()`);
+    params.push(id);
+
+    const result = await this.dataSource.query(
+      `UPDATE "${tenantSchema}".tps_locations
+       SET ${setClauses.join(', ')}
+       WHERE id = $${paramIndex}
+       RETURNING id, name, type, status, address, area_id,
+         ST_Y(coordinates::geometry) as latitude,
+         ST_X(coordinates::geometry) as longitude,
+         capacity_tons, current_load_tons, qr_code, created_at, updated_at`,
+      params,
+    );
+
     return result[0];
   }
 }

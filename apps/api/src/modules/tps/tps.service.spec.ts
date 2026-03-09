@@ -75,6 +75,22 @@ describe('TpsService', () => {
     });
   });
 
+  describe('updateTps', () => {
+    it('should update TPS status', async () => {
+      const mockTps = { id: 'tps-1', name: 'TPS Test', status: 'active' };
+      dataSource.query
+        .mockResolvedValueOnce([mockTps])  // getTpsById check
+        .mockResolvedValueOnce([{ ...mockTps, status: 'full' }]); // UPDATE
+
+      const result = await service.updateTps('test_schema', 'tps-1', {
+        status: 'full' as any,
+      });
+
+      expect(result.status).toBe('full');
+      expect(dataSource.query).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('listTps', () => {
     it('should return TPS with nearCapacity flag', async () => {
       dataSource.query.mockResolvedValue([
