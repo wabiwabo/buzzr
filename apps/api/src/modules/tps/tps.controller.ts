@@ -40,6 +40,11 @@ export class TpsController {
     return this.tpsService.listTpsPaginated(req.tenantSchema!, query, filters);
   }
 
+  @Get('map-summary')
+  getMapSummary(@Req() req: Request) {
+    return this.tpsService.getMapSummary(req.tenantSchema!);
+  }
+
   @Get()
   list(@Req() req: Request, @Query('areaId') areaId?: string, @Query('type') type?: string, @Query('status') status?: string) {
     return this.tpsService.listTps(req.tenantSchema!, { areaId, type, status });

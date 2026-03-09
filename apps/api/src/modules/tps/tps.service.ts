@@ -101,6 +101,23 @@ export class TpsService {
     return result;
   }
 
+  async getMapSummary(tenantSchema: string) {
+    const results = await this.dataSource.query(
+      `SELECT id, name, type, status, capacity_tons, current_load_tons,
+              ST_Y(coordinates::geometry) as latitude,
+              ST_X(coordinates::geometry) as longitude
+       FROM "${tenantSchema}".tps_locations
+       ORDER BY name`,
+      [],
+    );
+    return results.map((tps: any) => ({
+      ...tps,
+      fill_percent: tps.capacity_tons > 0
+        ? Math.round((tps.current_load_tons / tps.capacity_tons) * 100)
+        : 0,
+    }));
+  }
+
   async findNearby(tenantSchema: string, lat: number, lng: number, radiusMeters: number = 1000) {
     return this.dataSource.query(
       `SELECT id, name, type, status, address, capacity_tons, current_load_tons, qr_code,
