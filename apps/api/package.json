@@ -28,7 +28,7 @@
     "@nestjs/typeorm": "^10.0.0",
     "@nestjs/websockets": "^10.4.0",
     "bcrypt": "^5.1.1",
-    "bullmq": "^5.30.0",
+    "bullmq": "^5.77.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "expo-server-sdk": "^6.1.0",
