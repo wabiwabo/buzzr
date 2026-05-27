@@ -38,12 +38,17 @@ FROM nginx:alpine AS runner
 # Copy built web app to nginx html directory
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-# Add SPA fallback nginx config
+# Add SPA fallback nginx config with cache headers
 RUN echo 'server { \
     listen 80; \
     root /usr/share/nginx/html; \
     index index.html; \
+    location /assets/ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
     location / { \
+        add_header Cache-Control "no-cache"; \
         try_files $uri $uri/ /index.html; \
     } \
 }' > /etc/nginx/conf.d/default.conf
