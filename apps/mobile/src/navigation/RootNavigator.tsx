@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Alert } from 'react-native';
 import { useAuthStore } from '../stores/auth.store';
+import { useNotificationsSocket } from '../hooks/useNotificationsSocket';
 import LoginScreen from '../screens/common/LoginScreen';
 import CitizenTabs from './CitizenTabs';
 import DriverTabs from './DriverTabs';
@@ -31,6 +32,15 @@ function getRoleNavigator(role: string) {
 
 export default function RootNavigator() {
   const { isAuthenticated, isLoading, user, checkAuth } = useAuthStore();
+
+  // Real-time notification listener — surfaces incoming notifications as
+  // a simple Alert. (Future: replace with an in-app banner / Expo
+  // notifications integration when FCM credentials are wired.)
+  const { latest } = useNotificationsSocket();
+  useEffect(() => {
+    if (!latest) return;
+    Alert.alert(latest.title, latest.body || undefined);
+  }, [latest]);
 
   useEffect(() => { checkAuth(); }, []);
 
