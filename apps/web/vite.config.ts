@@ -30,7 +30,6 @@ export default defineConfig({
           'charts': ['recharts'],
           'maps': ['leaflet', 'react-leaflet', 'leaflet.heat'],
           'tables': ['@tanstack/react-table', '@tanstack/react-virtual'],
-          'export': ['xlsx', 'file-saver'],
           'dates': ['dayjs', 'react-day-picker'],
         },
       },

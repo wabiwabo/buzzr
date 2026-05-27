@@ -1,6 +1,4 @@
 import { useCallback } from 'react';
-import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
 
 interface ExportColumn {
   title: string;
@@ -8,9 +6,22 @@ interface ExportColumn {
   render?: (value: any, record: any) => string;
 }
 
+function formatRows(data: Record<string, any>[], columns: ExportColumn[]) {
+  return data.map((row) => {
+    const obj: Record<string, any> = {};
+    columns.forEach((col) => {
+      obj[col.title] = col.render
+        ? col.render(row[col.dataIndex], row)
+        : row[col.dataIndex] ?? '';
+    });
+    return obj;
+  });
+}
+
 export function useExport() {
   const exportCSV = useCallback(
-    (data: Record<string, any>[], columns: ExportColumn[], fileName: string) => {
+    async (data: Record<string, any>[], columns: ExportColumn[], fileName: string) => {
+      const { saveAs } = await import('file-saver');
       const header = columns.map((c) => c.title).join(',');
       const rows = data.map((row) =>
         columns
@@ -31,16 +42,9 @@ export function useExport() {
   );
 
   const exportExcel = useCallback(
-    (data: Record<string, any>[], columns: ExportColumn[], fileName: string) => {
-      const sheetData = data.map((row) => {
-        const obj: Record<string, any> = {};
-        columns.forEach((col) => {
-          obj[col.title] = col.render
-            ? col.render(row[col.dataIndex], row)
-            : row[col.dataIndex] ?? '';
-        });
-        return obj;
-      });
+    async (data: Record<string, any>[], columns: ExportColumn[], fileName: string) => {
+      const XLSX = await import('xlsx');
+      const sheetData = formatRows(data, columns);
       const ws = XLSX.utils.json_to_sheet(sheetData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Data');
