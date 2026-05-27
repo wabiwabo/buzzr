@@ -1,17 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationService } from './notification.service';
+import { NotificationGateway } from './notification.gateway';
 import { DataSource } from 'typeorm';
 
 describe('NotificationService', () => {
   let service: NotificationService;
   let dataSource: { query: jest.Mock };
+  let gateway: { broadcastToUser: jest.Mock };
 
   beforeEach(async () => {
     dataSource = { query: jest.fn() };
+    gateway = { broadcastToUser: jest.fn() };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationService,
         { provide: DataSource, useValue: dataSource },
+        { provide: NotificationGateway, useValue: gateway },
       ],
     }).compile();
     service = module.get<NotificationService>(NotificationService);
@@ -24,6 +28,20 @@ describe('NotificationService', () => {
         userId: 'u-1', title: 'Laporan Anda diproses', body: 'Petugas sedang menuju lokasi', type: 'complaint_update',
       });
       expect(result.is_read).toBe(false);
+    });
+  });
+
+  describe('createNotification broadcasts to gateway', () => {
+    it('should call gateway.broadcastToUser with the inserted row', async () => {
+      const mockRow = { id: 'n-1', user_id: 'u-1', title: 'Test', body: null, type: null, data: null };
+      (dataSource.query as jest.Mock).mockResolvedValue([mockRow]);
+
+      const result = await service.createNotification('dlh_demo', {
+        userId: 'u-1', title: 'Test',
+      });
+
+      expect(result).toEqual(mockRow);
+      expect(gateway.broadcastToUser).toHaveBeenCalledWith('dlh_demo', 'u-1', mockRow);
     });
   });
 

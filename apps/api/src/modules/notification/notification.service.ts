@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { NotificationGateway } from './notification.gateway';
 
 @Injectable()
 export class NotificationService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly gateway: NotificationGateway,
+  ) {}
 
   async createNotification(tenantSchema: string, data: { userId: string; title: string; body?: string; type?: string; data?: any }) {
     const result = await this.dataSource.query(
@@ -11,7 +15,11 @@ export class NotificationService {
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [data.userId, data.title, data.body || null, data.type || null, data.data ? JSON.stringify(data.data) : null],
     );
-    // TODO: Send FCM push notification
+
+    // Real-time fan-out to any connected clients for this user.
+    // (FCM push for closed-app delivery is still pending — see backlog.)
+    this.gateway.broadcastToUser(tenantSchema, data.userId, result[0]);
+
     return result[0];
   }
 
