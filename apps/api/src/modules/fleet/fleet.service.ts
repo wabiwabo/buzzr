@@ -99,6 +99,53 @@ export class FleetService {
     );
   }
 
+  async updateVehicle(
+    tenantSchema: string,
+    vehicleId: string,
+    body: Partial<{
+      plateNumber: string;
+      type: string;
+      capacityTons: number;
+      isActive: boolean;
+    }>,
+  ) {
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    if (body.plateNumber !== undefined) {
+      params.push(body.plateNumber);
+      updates.push(`plate_number = $${params.length}`);
+    }
+    if (body.type !== undefined) {
+      params.push(body.type);
+      updates.push(`type = $${params.length}`);
+    }
+    if (body.capacityTons !== undefined) {
+      params.push(body.capacityTons);
+      updates.push(`capacity_tons = $${params.length}`);
+    }
+    if (body.isActive !== undefined) {
+      params.push(body.isActive);
+      updates.push(`is_active = $${params.length}`);
+    }
+
+    if (updates.length === 0) {
+      return this.getVehicleById(tenantSchema, vehicleId);
+    }
+
+    updates.push(`updated_at = NOW()`);
+    params.push(vehicleId);
+
+    const result = await this.dataSource.query(
+      `UPDATE "${tenantSchema}".vehicles SET ${updates.join(', ')}
+       WHERE id = $${params.length} RETURNING *`,
+      params,
+    );
+
+    if (!result.length) throw new NotFoundException('Kendaraan tidak ditemukan');
+    return result[0];
+  }
+
   async getVehicleById(tenantSchema: string, id: string) {
     const result = await this.dataSource.query(
       `SELECT v.*, u.name as driver_name

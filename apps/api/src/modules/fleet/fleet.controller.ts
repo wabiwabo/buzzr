@@ -60,4 +60,14 @@ export class FleetController {
   unassignDriver(@Param('id') id: string, @Req() req: Request) {
     return this.fleetService.unassignDriver(req.tenantSchema!, id);
   }
+
+  @Patch(':id')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  update(
+    @Param('id') id: string,
+    @Body() body: { plateNumber?: string; type?: string; capacityTons?: number; isActive?: boolean },
+    @Req() req: Request,
+  ) {
+    return this.fleetService.updateVehicle(req.tenantSchema!, id, body);
+  }
 }

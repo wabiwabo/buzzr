@@ -103,4 +103,26 @@ describe('FleetService', () => {
       );
     });
   });
+
+  describe('updateVehicle', () => {
+    it('should update only provided fields', async () => {
+      dataSource.query.mockResolvedValue([{ id: 'v-1', plate_number: 'B 1234 XYZ', type: 'truck', is_active: false }]);
+
+      const result = await service.updateVehicle('dlh_demo', 'v-1', {
+        plateNumber: 'B 1234 XYZ',
+        isActive: false,
+      });
+
+      expect(result.is_active).toBe(false);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE'),
+        expect.any(Array),
+      );
+    });
+
+    it('should throw NotFoundException when vehicle does not exist', async () => {
+      dataSource.query.mockResolvedValue([]);
+      await expect(service.updateVehicle('dlh_demo', 'missing', { type: 'truck' })).rejects.toThrow();
+    });
+  });
 });
