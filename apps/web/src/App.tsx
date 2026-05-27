@@ -9,7 +9,7 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const TpsPage = React.lazy(() => import('./pages/TpsPage'));
 const FleetTriagePage = React.lazy(() => import('./pages/FleetTriagePage'));
 const ScheduleTriagePage = React.lazy(() => import('./pages/ScheduleTriagePage'));
-const ComplaintTriagePage = React.lazy(() => import('./pages/ComplaintTriagePage'));
+const ComplaintPage = React.lazy(() => import('./pages/ComplaintPage'));
 const PaymentTriagePage = React.lazy(() => import('./pages/PaymentTriagePage'));
 const UserPage = React.lazy(() => import('./pages/UserPage'));
 const ReportPage = React.lazy(() => import('./pages/ReportPage'));
@@ -39,7 +39,7 @@ export default function App() {
           <Route path="tps" element={<TpsPage />} />
           <Route path="fleet" element={<FleetTriagePage />} />
           <Route path="schedules" element={<ScheduleTriagePage />} />
-          <Route path="complaints" element={<ComplaintTriagePage />} />
+          <Route path="complaints" element={<ComplaintPage />} />
           <Route path="payments" element={<PaymentTriagePage />} />
           <Route path="users" element={<UserPage />} />
           <Route path="reports" element={<ReportPage />} />
