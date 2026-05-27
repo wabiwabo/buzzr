@@ -71,6 +71,24 @@ describe('ComplaintService', () => {
     });
   });
 
+  describe('getComplaintById (with attachments)', () => {
+    it('should return complaint detail with attachments array', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{
+          id: 'c-1', category: 'illegal_dumping', status: 'submitted',
+          reporter_name: 'Budi', description: 'Sampah liar',
+        }])
+        .mockResolvedValueOnce([
+          { id: 'att-1', file_url: '/uploads/photo1.jpg', file_type: 'image/jpeg', created_at: '2026-05-01T10:00:00Z' },
+        ]);
+
+      const result = await service.getComplaintById('dlh_demo', 'c-1');
+      expect(result.attachments).toBeDefined();
+      expect(result.attachments).toHaveLength(1);
+      expect(result.attachments[0].file_url).toBe('/uploads/photo1.jpg');
+    });
+  });
+
   describe('getMapSummary', () => {
     it('should return lightweight complaint markers for map', async () => {
       const mockData = [

@@ -87,12 +87,24 @@ export class ComplaintService {
 
   async getComplaintById(tenantSchema: string, id: string) {
     const result = await this.dataSource.query(
-      `SELECT c.*, u.name as reporter_name FROM "${tenantSchema}".complaints c
-       LEFT JOIN "${tenantSchema}".users u ON c.reporter_id = u.id WHERE c.id = $1`,
+      `SELECT c.*, u.name as reporter_name, a.name as assignee_name
+       FROM "${tenantSchema}".complaints c
+       LEFT JOIN "${tenantSchema}".users u ON c.reporter_id = u.id
+       LEFT JOIN "${tenantSchema}".users a ON c.assigned_to = a.id
+       WHERE c.id = $1`,
       [id],
     );
     if (!result.length) throw new NotFoundException('Laporan tidak ditemukan');
-    return result[0];
+
+    const attachments = await this.dataSource.query(
+      `SELECT id, file_url, file_type, created_at
+       FROM "${tenantSchema}".complaint_attachments
+       WHERE complaint_id = $1
+       ORDER BY created_at`,
+      [id],
+    );
+
+    return { ...result[0], attachments };
   }
 
   async getMapSummary(tenantSchema: string, limit: number = 1000): Promise<any[]> {
