@@ -14,44 +14,8 @@ env:
   TURBO_TELEMETRY_DISABLED: '1'
 
 jobs:
-  install:
-    name: Install dependencies
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      pnpm-store: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
-          run_install: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
-
-      - name: Cache turbo
-        uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-
-      - run: pnpm install --frozen-lockfile
-
   typecheck-api:
     name: Typecheck · API
-    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -61,11 +25,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm -r --filter "./packages/*" run build
       - run: cd apps/api && npx tsc --noEmit
 
   typecheck-web:
     name: Typecheck · Web
-    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -75,11 +40,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm -r --filter "./packages/*" run build
       - run: cd apps/web && npx tsc --noEmit
 
   typecheck-mobile:
     name: Typecheck · Mobile
-    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -89,11 +55,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm -r --filter "./packages/*" run build
       - run: cd apps/mobile && npx tsc --noEmit
 
   test-api:
     name: Tests · API
-    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -103,11 +70,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm -r --filter "./packages/*" run build
       - run: cd apps/api && npx jest --ci --silent
 
   build-web:
     name: Build · Web
-    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -117,6 +85,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm -r --filter "./packages/*" run build
       - run: cd apps/web && npx vite build
 
   ci-passed:
