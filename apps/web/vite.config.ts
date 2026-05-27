@@ -19,4 +19,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'radix': ['radix-ui', 'lucide-react', 'cmdk', 'sonner'],
+          'motion': ['framer-motion'],
+          'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'charts': ['recharts'],
+          'maps': ['leaflet', 'react-leaflet', 'leaflet.heat'],
+          'tables': ['@tanstack/react-table', '@tanstack/react-virtual'],
+          'export': ['xlsx', 'file-saver'],
+          'dates': ['dayjs', 'react-day-picker'],
+        },
+      },
+    },
+  },
 });
