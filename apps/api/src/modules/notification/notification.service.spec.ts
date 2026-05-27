@@ -1,21 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationService } from './notification.service';
 import { NotificationGateway } from './notification.gateway';
+import { ExpoPushService } from './expo-push.service';
+import { UserService } from '../user/user.service';
 import { DataSource } from 'typeorm';
 
 describe('NotificationService', () => {
   let service: NotificationService;
   let dataSource: { query: jest.Mock };
   let gateway: { broadcastToUser: jest.Mock };
+  let pushService: { sendToToken: jest.Mock };
+  let userService: { getPushToken: jest.Mock };
 
   beforeEach(async () => {
     dataSource = { query: jest.fn() };
     gateway = { broadcastToUser: jest.fn() };
+    pushService = { sendToToken: jest.fn().mockResolvedValue(undefined) };
+    userService = { getPushToken: jest.fn().mockResolvedValue(null) };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationService,
         { provide: DataSource, useValue: dataSource },
         { provide: NotificationGateway, useValue: gateway },
+        { provide: ExpoPushService, useValue: pushService },
+        { provide: UserService, useValue: userService },
       ],
     }).compile();
     service = module.get<NotificationService>(NotificationService);
@@ -80,6 +88,25 @@ describe('NotificationService', () => {
 
       expect(result.user_id).toBe('d-1');
       expect(result.title).toBe('Rute baru ditugaskan');
+    });
+  });
+
+  describe('createNotification with push token', () => {
+    it('should send a push notification when the user has a token', async () => {
+      const mockRow = { id: 'n-1', user_id: 'u-1', title: 'Test', body: 'body', type: null, data: null };
+      (dataSource.query as jest.Mock).mockResolvedValue([mockRow]);
+      (userService.getPushToken as jest.Mock).mockResolvedValue('ExponentPushToken[abc]');
+
+      await service.createNotification('dlh_demo', { userId: 'u-1', title: 'Test', body: 'body' });
+
+      // Allow the fire-and-forget promise to resolve
+      await new Promise((r) => setImmediate(r));
+
+      expect(pushService.sendToToken).toHaveBeenCalledWith(expect.objectContaining({
+        token: 'ExponentPushToken[abc]',
+        title: 'Test',
+        body: 'body',
+      }));
     });
   });
 });

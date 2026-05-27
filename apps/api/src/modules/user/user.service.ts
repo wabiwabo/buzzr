@@ -85,4 +85,20 @@ export class UserService {
 
     return result[0];
   }
+
+  async setPushToken(tenantSchema: string, userId: string, token: string | null) {
+    await this.dataSource.query(
+      `UPDATE "${tenantSchema}".users SET expo_push_token = $1, updated_at = NOW() WHERE id = $2`,
+      [token, userId],
+    );
+    return { ok: true };
+  }
+
+  async getPushToken(tenantSchema: string, userId: string): Promise<string | null> {
+    const result = await this.dataSource.query(
+      `SELECT expo_push_token FROM "${tenantSchema}".users WHERE id = $1`,
+      [userId],
+    );
+    return result[0]?.expo_push_token || null;
+  }
 }

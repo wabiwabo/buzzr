@@ -44,6 +44,11 @@ export class UserController {
     return this.userService.getUserById(req.tenantSchema!, req.user.userId);
   }
 
+  @Post('me/push-token')
+  setPushToken(@Body('token') token: string | null, @Req() req: any) {
+    return this.userService.setPushToken(req.tenantSchema!, req.user.userId, token || null);
+  }
+
   @Get(':id')
   @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
   getById(@Param('id') id: string, @Req() req: Request) {

@@ -58,6 +58,7 @@ BEGIN
             area_id        UUID REFERENCES %I.areas(id),
             is_active      BOOLEAN NOT NULL DEFAULT TRUE,
             reward_points  INTEGER NOT NULL DEFAULT 0,
+            expo_push_token VARCHAR(255),
             created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )', tenant_schema, tenant_schema);
