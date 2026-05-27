@@ -37,5 +37,69 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Refresh-on-401 interceptor.
+// On a 401, attempt to exchange the stored refresh token for a new access
+// token, then replay the original request once. Concurrent 401s coalesce
+// onto the same in-flight refresh so we don't burn refresh tokens.
+let refreshInFlight: Promise<string | null> | null = null;
+let onAuthFailure: (() => void) | null = null;
+
+export function setOnAuthFailure(handler: (() => void) | null) {
+  onAuthFailure = handler;
+}
+
+async function performRefresh(): Promise<string | null> {
+  const refreshToken = await SecureStore.getItemAsync('refreshToken');
+  if (!refreshToken) return null;
+  try {
+    // Use a bare axios call so this request doesn't loop through our interceptors.
+    const { data } = await axios.post(
+      `${API_URL}/auth/refresh`,
+      { refreshToken },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+    await SecureStore.setItemAsync('accessToken', data.accessToken);
+    await SecureStore.setItemAsync('refreshToken', data.refreshToken);
+    return data.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    if (
+      error.response?.status !== 401 ||
+      !original ||
+      original._retried ||
+      original.url?.includes('/auth/')
+    ) {
+      return Promise.reject(error);
+    }
+
+    original._retried = true;
+
+    if (!refreshInFlight) {
+      refreshInFlight = performRefresh().finally(() => {
+        refreshInFlight = null;
+      });
+    }
+    const newAccess = await refreshInFlight;
+
+    if (!newAccess) {
+      await SecureStore.deleteItemAsync('accessToken');
+      await SecureStore.deleteItemAsync('refreshToken');
+      onAuthFailure?.();
+      return Promise.reject(error);
+    }
+
+    original.headers = original.headers || {};
+    original.headers.Authorization = `Bearer ${newAccess}`;
+    return api(original);
+  },
+);
+
 export { API_URL };
 export default api;

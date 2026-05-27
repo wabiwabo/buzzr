@@ -66,6 +66,32 @@ export class AuthService {
     return this.generateTokens(users[0], tenantSchema);
   }
 
+  async refreshTokens(refreshToken: string) {
+    let payload: { sub: string; role: string; tenant: string };
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get('jwt.refreshSecret'),
+      });
+    } catch {
+      throw new UnauthorizedException('Refresh token tidak valid');
+    }
+
+    const tenantSchema = payload.tenant;
+    if (!tenantSchema || !/^[a-z_][a-z0-9_]*$/.test(tenantSchema)) {
+      throw new UnauthorizedException('Refresh token tidak valid');
+    }
+
+    const users = await this.dataSource.query(
+      `SELECT id, name, email, phone, role FROM "${tenantSchema}".users WHERE id = $1 AND is_active = true`,
+      [payload.sub],
+    );
+    if (!users.length) {
+      throw new UnauthorizedException('Pengguna tidak ditemukan');
+    }
+
+    return this.generateTokens(users[0], tenantSchema);
+  }
+
   async generateTokens(user: { id: string; name: string; email?: string; phone?: string; role: string }, tenantSchema: string) {
     const payload = { sub: user.id, role: user.role, tenant: tenantSchema };
 

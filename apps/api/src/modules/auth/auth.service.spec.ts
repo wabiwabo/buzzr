@@ -17,6 +17,7 @@ describe('AuthService', () => {
     };
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('mock-token'),
+      verifyAsync: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -66,6 +67,46 @@ describe('AuthService', () => {
       await expect(
         service.loginWithPassword('dlh_demo', 'wrong@test.com', 'password'),
       ).rejects.toThrow('Email atau password salah');
+    });
+  });
+
+  describe('refreshTokens', () => {
+    it('should issue new tokens for a valid refresh token', async () => {
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+        sub: 'user-1', role: 'dlh_admin', tenant: 'dlh_demo',
+      });
+      (dataSource.query as jest.Mock).mockResolvedValue([
+        { id: 'user-1', name: 'Admin', email: 'admin@test.com', role: 'dlh_admin' },
+      ]);
+
+      const result = await service.refreshTokens('valid-refresh');
+
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+      expect(result.user.email).toBe('admin@test.com');
+    });
+
+    it('should reject when the refresh token fails verification', async () => {
+      (jwtService.verifyAsync as jest.Mock).mockRejectedValue(new Error('bad token'));
+
+      await expect(service.refreshTokens('bogus')).rejects.toThrow('Refresh token tidak valid');
+    });
+
+    it('should reject when the payload tenant is invalid', async () => {
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+        sub: 'user-1', role: 'dlh_admin', tenant: '; DROP TABLE users;',
+      });
+
+      await expect(service.refreshTokens('forged')).rejects.toThrow('Refresh token tidak valid');
+    });
+
+    it('should reject when the user is no longer active', async () => {
+      (jwtService.verifyAsync as jest.Mock).mockResolvedValue({
+        sub: 'user-1', role: 'dlh_admin', tenant: 'dlh_demo',
+      });
+      (dataSource.query as jest.Mock).mockResolvedValue([]);
+
+      await expect(service.refreshTokens('valid-but-stale')).rejects.toThrow('Pengguna tidak ditemukan');
     });
   });
 });

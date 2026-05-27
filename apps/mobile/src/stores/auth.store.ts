@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../services/api';
+import api, { setOnAuthFailure } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 
 interface User { id: string; name: string; phone?: string; email?: string; role: string; }
@@ -15,7 +15,7 @@ interface AuthState {
   checkAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
@@ -58,3 +58,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
+
+// When the API client gives up on refreshing tokens, push the auth store
+// back to the logged-out state so the navigator falls through to LoginScreen.
+setOnAuthFailure(() => {
+  useAuthStore.setState({ user: null, isAuthenticated: false });
+});

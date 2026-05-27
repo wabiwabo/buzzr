@@ -21,4 +21,9 @@ export class AuthController {
   async verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
     return this.authService.loginWithOtp(req.tenantSchema!, dto.phone, dto.code);
   }
+
+  @Post('refresh')
+  async refresh(@Body('refreshToken') refreshToken: string) {
+    return this.authService.refreshTokens(refreshToken);
+  }
 }
