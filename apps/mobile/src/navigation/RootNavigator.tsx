@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View, Alert } from 'react-native';
 import { useAuthStore } from '../stores/auth.store';
 import { useNotificationsSocket } from '../hooks/useNotificationsSocket';
+import { usePushTokenRegistration } from '../hooks/usePushTokenRegistration';
 import LoginScreen from '../screens/common/LoginScreen';
 import CitizenTabs from './CitizenTabs';
 import DriverTabs from './DriverTabs';
@@ -37,6 +38,7 @@ export default function RootNavigator() {
   // a simple Alert. (Future: replace with an in-app banner / Expo
   // notifications integration when FCM credentials are wired.)
   const { latest } = useNotificationsSocket();
+  usePushTokenRegistration();
   useEffect(() => {
     if (!latest) return;
     Alert.alert(latest.title, latest.body || undefined);
