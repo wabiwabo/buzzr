@@ -10,6 +10,7 @@ import TpsOperatorTabs from './TpsOperatorTabs';
 import CollectorTabs from './CollectorTabs';
 import SweeperTabs from './SweeperTabs';
 import TpstOperatorTabs from './TpstOperatorTabs';
+import AdminTabs from './AdminTabs';
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +22,9 @@ function getRoleNavigator(role: string) {
     case 'collector': return CollectorTabs;
     case 'sweeper': return SweeperTabs;
     case 'tpst_operator': return TpstOperatorTabs;
+    case 'dlh_admin':
+    case 'super_admin':
+      return AdminTabs;
     default: return CitizenTabs;
   }
 }
