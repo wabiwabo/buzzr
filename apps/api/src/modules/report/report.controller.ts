@@ -17,6 +17,15 @@ export class ReportController {
     return this.reportService.getWasteVolumeReport(req.tenantSchema!, from, to);
   }
 
+  @Get('complaints/timeseries')
+  getComplaintTimeseries(
+    @Req() req: Request,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.reportService.getComplaintTimeseries(req.tenantSchema!, from, to);
+  }
+
   @Get('complaints')
   getComplaintStats(@Req() req: Request, @Query('from') from: string, @Query('to') to: string) {
     return this.reportService.getComplaintStats(req.tenantSchema!, from, to);

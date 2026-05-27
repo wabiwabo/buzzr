@@ -126,6 +126,28 @@ export class ReportService {
     return this.dataSource.query(query, [limit]);
   }
 
+  async getComplaintTimeseries(tenantSchema: string, from: string, to: string): Promise<any[]> {
+    const schemaName = tenantSchema.replace(/[^a-z0-9_]/gi, '');
+    return this.dataSource.query(
+      `SELECT
+        DATE(created_at) as date,
+        COUNT(*)::int as total,
+        COUNT(*) FILTER (WHERE status = 'resolved')::int as resolved,
+        ROUND(AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)) / 3600)
+          FILTER (WHERE resolved_at IS NOT NULL), 1) as avg_resolution_hours,
+        CASE WHEN COUNT(*) = 0 THEN 100
+        ELSE ROUND(
+          COUNT(*) FILTER (WHERE resolved_at IS NOT NULL
+            AND resolved_at - created_at <= INTERVAL '72 hours') * 100.0 / COUNT(*), 1
+        ) END as sla_compliance_pct
+      FROM "${schemaName}".complaints
+      WHERE created_at BETWEEN $1 AND ($2::date + interval '1 day')
+      GROUP BY DATE(created_at)
+      ORDER BY date`,
+      [from, to],
+    );
+  }
+
   async getDashboardWithComparison(tenantSchema: string): Promise<{
     current: any;
     previous: any;

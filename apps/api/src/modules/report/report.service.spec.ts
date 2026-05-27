@@ -95,4 +95,21 @@ describe('ReportService', () => {
       expect(result.trends.wasteChange).toBeCloseTo(13.6, 0);
     });
   });
+
+  describe('getComplaintTimeseries', () => {
+    it('should return daily complaint aggregation', async () => {
+      const mockData = [
+        { date: '2026-05-01', total: 5, resolved: 3, avg_resolution_hours: 24.5, sla_compliance_pct: 80 },
+        { date: '2026-05-02', total: 3, resolved: 2, avg_resolution_hours: 18.2, sla_compliance_pct: 100 },
+      ];
+      dataSource.query.mockResolvedValueOnce(mockData);
+
+      const result = await service.getComplaintTimeseries('dlh_demo', '2026-05-01', '2026-05-07');
+      expect(result).toEqual(mockData);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('sla_compliance_pct'),
+        ['2026-05-01', '2026-05-07'],
+      );
+    });
+  });
 });
