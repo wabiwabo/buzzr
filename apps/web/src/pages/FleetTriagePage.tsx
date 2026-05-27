@@ -25,8 +25,14 @@ const TYPE_LABELS: Record<string, string> = {
 
 const typeOptions = Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
+const activeOptions = [
+  { value: 'true', label: 'Aktif' },
+  { value: 'false', label: 'Nonaktif' },
+];
+
 const fleetFilterDefs: FilterDef[] = [
   { key: 'v.type', label: 'Tipe', type: 'select', options: typeOptions },
+  { key: 'v.is_active', label: 'Status', type: 'select', options: activeOptions },
 ];
 
 const columnHelper = createColumnHelper<Vehicle>();
@@ -151,7 +157,7 @@ export default function FleetTriagePage() {
           onResetFilters={resetFilters}
           activeFilterCount={activeFilterCount}
           filterDefs={fleetFilterDefs}
-          filterLabels={{ 'v.type': 'Tipe' }}
+          filterLabels={{ 'v.type': 'Tipe', 'v.is_active': 'Status' }}
           onPageChange={setPage}
           onLimitChange={setLimit}
           onRefresh={refetch}

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import dayjs from 'dayjs';
+import { toast } from 'sonner';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -32,7 +33,11 @@ export const AnalyticsTab: React.FC = () => {
           setStats(st);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err?.response?.data?.message || 'Gagal memuat analitik pengaduan');
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [from, to]);

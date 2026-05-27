@@ -27,6 +27,7 @@ interface User {
   phone: string | null;
   role: string;
   area_id: string | null;
+  area_name: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -53,7 +54,7 @@ const PASSWORD_ROLES = ['sweeper', 'tps_operator', 'collector', 'driver', 'tpst_
 
 const userFilterDefs: FilterDef[] = [
   {
-    key: 'role',
+    key: 'u.role',
     label: 'Peran',
     type: 'select',
     options: Object.entries(roleLabels).map(([value, label]) => ({ value, label })),
@@ -116,7 +117,7 @@ const UserPage: React.FC = () => {
       size: 130,
       enableSorting: false,
     }),
-    columnHelper.accessor('area_id', {
+    columnHelper.accessor('area_name', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Area" />,
       cell: ({ getValue }) => getValue() || '-',
       size: 120,
@@ -158,6 +159,7 @@ const UserPage: React.FC = () => {
     columnDefs,
     defaultSort: { field: 'name', order: 'asc' },
     filterDefs: userFilterDefs,
+    columnMap: { name: 'u.name', email: 'u.email', role: 'u.role', created_at: 'u.created_at' },
   });
 
   searchTextRef.current = searchText;
@@ -197,7 +199,7 @@ const UserPage: React.FC = () => {
         onResetFilters={resetFilters}
         activeFilterCount={activeFilterCount}
         filterDefs={userFilterDefs}
-        filterLabels={{ role: 'Peran' }}
+        filterLabels={{ 'u.role': 'Peran' }}
         onPageChange={setPage}
         onLimitChange={setLimit}
         onRefresh={refetch}
@@ -290,7 +292,7 @@ const UserPage: React.FC = () => {
           { label: 'Role', value: <Badge variant="outline" className={roleColors[drawerRecord.role]}>{roleLabels[drawerRecord.role] || drawerRecord.role}</Badge> },
           { label: 'Email', value: drawerRecord.email || '-' },
           { label: 'HP', value: drawerRecord.phone || '-' },
-          { label: 'Area', value: drawerRecord.area_id || '-' },
+          { label: 'Area', value: drawerRecord.area_name || '-' },
           { label: 'Terdaftar', value: dayjs(drawerRecord.created_at).format('DD MMM YYYY, HH:mm') },
         ] : []}
       />

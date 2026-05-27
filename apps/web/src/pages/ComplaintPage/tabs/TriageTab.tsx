@@ -40,9 +40,13 @@ export const TriageTab: React.FC = () => {
       return;
     }
     let cancelled = false;
-    fetchComplaintDetail(selectedComplaint.id).then((detail) => {
-      if (!cancelled) setComplaintDetail(detail);
-    }).catch(() => {});
+    fetchComplaintDetail(selectedComplaint.id)
+      .then((detail) => { if (!cancelled) setComplaintDetail(detail); })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err?.response?.data?.message || 'Gagal memuat detail pengaduan');
+        }
+      });
     return () => { cancelled = true; };
   }, [selectedComplaint?.id]);
 

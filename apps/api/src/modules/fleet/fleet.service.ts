@@ -62,11 +62,9 @@ export class FleetService {
     return buildPaginatedQuery(this.dataSource, {
       baseQuery: `SELECT v.id, v.plate_number, v.type, v.capacity_tons, v.driver_id, v.is_active, v.created_at, u.name as driver_name FROM "${tenantSchema}".vehicles v LEFT JOIN "${tenantSchema}".users u ON v.driver_id = u.id`,
       countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".vehicles v LEFT JOIN "${tenantSchema}".users u ON v.driver_id = u.id`,
-      baseConditions: ['v.is_active = $1'],
-      baseParams: [true],
       searchableColumns: ['v.plate_number', 'u.name'],
       sortableColumns: ['v.plate_number', 'v.type', 'v.created_at'],
-      filterableColumns: ['v.type'],
+      filterableColumns: ['v.type', 'v.is_active'],
       defaultSort: 'v.plate_number',
       defaultOrder: 'asc',
     }, {

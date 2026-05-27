@@ -53,13 +53,13 @@ export class UserService {
     filters?: Record<string, string>,
   ): Promise<PaginatedResponse<any>> {
     return buildPaginatedQuery(this.dataSource, {
-      baseQuery: `SELECT id, name, email, phone, role, area_id, is_active, created_at FROM "${tenantSchema}".users`,
-      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".users`,
-      baseConditions: ['is_active = $1'],
+      baseQuery: `SELECT u.id, u.name, u.email, u.phone, u.role, u.area_id, u.is_active, u.created_at, a.name as area_name FROM "${tenantSchema}".users u LEFT JOIN "${tenantSchema}".areas a ON u.area_id = a.id`,
+      countQuery: `SELECT COUNT(*) FROM "${tenantSchema}".users u`,
+      baseConditions: ['u.is_active = $1'],
       baseParams: [true],
-      searchableColumns: ['name', 'email', 'phone'],
-      sortableColumns: ['name', 'email', 'role', 'created_at'],
-      filterableColumns: ['role', 'area_id'],
+      searchableColumns: ['u.name', 'u.email', 'u.phone'],
+      sortableColumns: ['u.name', 'u.email', 'u.role', 'u.created_at'],
+      filterableColumns: ['u.role', 'u.area_id'],
       defaultSort: 'name',
       defaultOrder: 'asc',
     }, {
