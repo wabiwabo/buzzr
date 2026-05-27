@@ -7,3 +7,12 @@ dist/
 coverage/
 .DS_Store
 .worktrees/
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# shared-types emits .d.ts/.js alongside sources for downstream consumers; treat as build output
+packages/shared-types/src/*.js
+packages/shared-types/src/*.js.map
+packages/shared-types/src/*.d.ts
+packages/shared-types/src/*.d.ts.map
