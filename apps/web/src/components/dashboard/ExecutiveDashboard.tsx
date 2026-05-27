@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import api from '../../services/api';
 import { StatCard } from '../common';
 import { AttentionQueue } from './AttentionQueue';
-import { WasteTrendChart } from './WasteTrendChart';
+import { WasteTrendChart, type WasteRow } from './WasteTrendChart';
 import { DriverLeaderboard } from './DriverLeaderboard';
 import { AreaCollectionChart } from './AreaCollectionChart';
 
@@ -20,14 +20,6 @@ interface DashboardData {
     driverChange: number;
     complaintChange: number;
   };
-}
-
-interface WasteDataRow {
-  date: string;
-  organic: number;
-  inorganic: number;
-  b3: number;
-  recyclable: number;
 }
 
 interface AttentionItem {
@@ -52,7 +44,7 @@ interface ComplaintRecord {
 
 export const ExecutiveDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [wasteData, setWasteData] = useState<WasteDataRow[]>([]);
+  const [wasteData, setWasteData] = useState<WasteRow[]>([]);
   const [attentionItems, setAttentionItems] = useState<AttentionItem[]>([]);
   const [loading, setLoading] = useState(true);
 

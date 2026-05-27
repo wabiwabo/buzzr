@@ -10,6 +10,11 @@ interface PerformanceData {
   tpsCapacity: number;
 }
 
+interface TpsCapacityRow {
+  capacity_tons: number | string | null;
+  current_load_tons: number | string | null;
+}
+
 interface AreaCollectionChartProps {
   loading?: boolean;
 }
@@ -24,9 +29,9 @@ export const AreaCollectionChart: React.FC<AreaCollectionChartProps> = ({ loadin
         const res = await api.get('/reports/dashboard');
         if (res.data?.current) {
           const tps = await api.get('/tps').catch(() => ({ data: [] }));
-          const tpsList = Array.isArray(tps.data) ? tps.data : [];
-          const totalCap = tpsList.reduce((s: number, t: any) => s + Number(t.capacity_tons || 0), 0);
-          const totalLoad = tpsList.reduce((s: number, t: any) => s + Number(t.current_load_tons || 0), 0);
+          const tpsList: TpsCapacityRow[] = Array.isArray(tps.data) ? tps.data : [];
+          const totalCap = tpsList.reduce((s, t) => s + Number(t.capacity_tons || 0), 0);
+          const totalLoad = tpsList.reduce((s, t) => s + Number(t.current_load_tons || 0), 0);
           setData({
             collectionRate: res.data.current.collectionRate || 0,
             slaCompliance: 0,

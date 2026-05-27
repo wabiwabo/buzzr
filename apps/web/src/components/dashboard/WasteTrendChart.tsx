@@ -6,21 +6,40 @@ import {
 } from 'recharts';
 import { WASTE_COLORS } from '../../theme/tokens';
 
+export interface WasteRow {
+  date: string;
+  category: string;
+  total_kg: number | string;
+}
+
+type WasteCategoryKey = 'organic' | 'inorganic' | 'b3' | 'recyclable';
+const WASTE_CATEGORY_KEYS: WasteCategoryKey[] = ['organic', 'inorganic', 'b3', 'recyclable'];
+
+interface DailyTotals {
+  date: string;
+  organic: number;
+  inorganic: number;
+  b3: number;
+  recyclable: number;
+}
+
 interface WasteTrendChartProps {
-  data: any[];
+  data: WasteRow[];
   loading?: boolean;
 }
 
 export const WasteTrendChart: React.FC<WasteTrendChartProps> = ({ data, loading }) => {
-  const chartData = useMemo(() => {
-    const byDate: Record<string, any> = {};
-    data.forEach((r: any) => {
+  const chartData = useMemo<DailyTotals[]>(() => {
+    const byDate: Record<string, DailyTotals> = {};
+    data.forEach((r) => {
       const date = r.date?.slice(0, 10) || 'unknown';
       if (!byDate[date]) byDate[date] = { date, organic: 0, inorganic: 0, b3: 0, recyclable: 0 };
-      const key = ['organic', 'inorganic', 'b3', 'recyclable'].includes(r.category) ? r.category : 'recyclable';
+      const key: WasteCategoryKey = (WASTE_CATEGORY_KEYS as string[]).includes(r.category)
+        ? (r.category as WasteCategoryKey)
+        : 'recyclable';
       byDate[date][key] += Number(r.total_kg || 0);
     });
-    return Object.values(byDate).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
   }, [data]);
 
   return (

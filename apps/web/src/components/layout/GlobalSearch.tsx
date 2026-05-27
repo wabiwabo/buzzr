@@ -13,6 +13,19 @@ interface SearchResult {
   subtitle?: string;
 }
 
+interface TpsSearchRow {
+  id: string;
+  name: string | null;
+  address: string | null;
+}
+
+interface UserSearchRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
 const typeConfig: Record<string, { icon: React.ReactNode; color: string; path: string }> = {
   tps: { icon: <MapPin className="h-3.5 w-3.5 text-positive" />, color: 'bg-positive/10 text-positive', path: '/tps' },
   fleet: { icon: <Car className="h-3.5 w-3.5 text-info" />, color: 'bg-info/10 text-info', path: '/fleet' },
@@ -45,19 +58,19 @@ export const GlobalSearch: React.FC = () => {
         const lower = value.toLowerCase();
 
         if (tpsRes.status === 'fulfilled') {
-          const tpsList = Array.isArray(tpsRes.value.data) ? tpsRes.value.data : [];
+          const tpsList: TpsSearchRow[] = Array.isArray(tpsRes.value.data) ? tpsRes.value.data : [];
           tpsList
-            .filter((t: any) => t.name?.toLowerCase().includes(lower) || t.address?.toLowerCase().includes(lower))
+            .filter((t) => t.name?.toLowerCase().includes(lower) || t.address?.toLowerCase().includes(lower))
             .slice(0, 3)
-            .forEach((t: any) => all.push({ type: 'tps', id: t.id, title: t.name, subtitle: t.address }));
+            .forEach((t) => all.push({ type: 'tps', id: t.id, title: t.name || '', subtitle: t.address || undefined }));
         }
 
         if (usersRes.status === 'fulfilled') {
-          const usersList = Array.isArray(usersRes.value.data) ? usersRes.value.data : [];
+          const usersList: UserSearchRow[] = Array.isArray(usersRes.value.data) ? usersRes.value.data : [];
           usersList
-            .filter((u: any) => u.name?.toLowerCase().includes(lower) || u.email?.toLowerCase().includes(lower))
+            .filter((u) => u.name?.toLowerCase().includes(lower) || u.email?.toLowerCase().includes(lower))
             .slice(0, 3)
-            .forEach((u: any) => all.push({ type: 'user', id: u.id, title: u.name, subtitle: u.email || u.phone }));
+            .forEach((u) => all.push({ type: 'user', id: u.id, title: u.name || '', subtitle: u.email || u.phone || undefined }));
         }
 
         setResults(all);
