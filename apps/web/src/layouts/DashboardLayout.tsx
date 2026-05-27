@@ -14,6 +14,7 @@ import { useOnboarding } from '../hooks/useOnboarding';
 import { useKeyboardShortcut } from '../hooks/useKeyboardShortcut';
 import { useChecklist } from '../hooks/useChecklist';
 import { useNotificationStore } from '../stores/notification.store';
+import { useNotificationSocket } from '../hooks/useNotificationSocket';
 
 const WELCOME_DONE_KEY = 'buzzr_welcome_done';
 
@@ -33,6 +34,9 @@ const DashboardLayout: React.FC = () => {
   const { items: checklistItems, dismissed: checklistDismissed, markComplete, dismiss: dismissChecklist } = useChecklist();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Subscribe to real-time notifications for the logged-in user.
+  useNotificationSocket();
 
   const [showWelcome, setShowWelcome] = useState(() => {
     return localStorage.getItem(WELCOME_DONE_KEY) !== 'true';
