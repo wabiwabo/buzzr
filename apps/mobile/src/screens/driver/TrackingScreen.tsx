@@ -11,6 +11,7 @@ import {
 import * as Location from 'expo-location';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { useTrackingSocket } from '../../hooks/useTrackingSocket';
 
 interface LocationData {
   latitude: number;
@@ -20,6 +21,7 @@ interface LocationData {
 
 export default function TrackingScreen() {
   const user = useAuthStore((s) => s.user);
+  const { connected: socketConnected, sendGps } = useTrackingSocket();
   const [vehicleId, setVehicleId] = useState('');
   const [isTracking, setIsTracking] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
@@ -68,21 +70,28 @@ export default function TrackingScreen() {
       if (now - lastSendRef.current < 5000) return;
       lastSendRef.current = now;
 
+      const payload = {
+        vehicleId,
+        driverId: user?.id || '',
+        latitude: location.latitude,
+        longitude: location.longitude,
+        speed: location.speed ?? 0,
+      };
+
+      // Prefer WebSocket when connected — lower latency, fewer roundtrips,
+      // and the server broadcasts to subscribers in the same tenant room.
+      if (socketConnected && sendGps(payload)) return;
+
       try {
         setSending(true);
-        await api.post('/tracking/location', {
-          vehicleId,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          speed: location.speed ?? 0,
-        });
+        await api.post('/tracking/location', payload);
       } catch {
         // Silent fail for location sends to avoid spamming alerts
       } finally {
         setSending(false);
       }
     },
-    [vehicleId],
+    [vehicleId, user?.id, socketConnected, sendGps],
   );
 
   const startTracking = async () => {
@@ -205,6 +214,9 @@ export default function TrackingScreen() {
             />
           )}
         </View>
+        <Text style={styles.connectionLabel}>
+          {socketConnected ? '🟢 Real-time aktif' : '⚪️ Fallback REST'}
+        </Text>
 
         <Text style={styles.timerText}>{elapsed}</Text>
       </View>
@@ -322,6 +334,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
+  },
+  connectionLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
   },
   timerText: {
     fontSize: 40,
