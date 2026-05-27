@@ -50,7 +50,11 @@ export function useLiveData() {
     if (fleet) {
       const vehiclesWithStatus: VehicleWithStatus[] = fleet.map((v) => ({
         ...v,
-        status: deriveVehicleStatus(v.speed, v.last_update),
+        latitude: v.latitude != null ? Number(v.latitude) : null,
+        longitude: v.longitude != null ? Number(v.longitude) : null,
+        speed: v.speed != null ? Number(v.speed) : null,
+        capacity_tons: v.capacity_tons != null ? Number(v.capacity_tons) : v.capacity_tons,
+        status: deriveVehicleStatus(v.speed != null ? Number(v.speed) : null, v.last_update),
       }));
       store.setVehicles(vehiclesWithStatus);
 
@@ -60,10 +64,32 @@ export function useLiveData() {
       }
     }
 
-    if (tps) store.setTpsLocations(tps);
+    if (tps) {
+      store.setTpsLocations(tps.map((t) => ({
+        ...t,
+        latitude: Number(t.latitude),
+        longitude: Number(t.longitude),
+        capacity_tons: Number(t.capacity_tons),
+        current_load_tons: Number(t.current_load_tons),
+        fill_percent: Number(t.fill_percent),
+      })));
+    }
     if (schedules) store.setActiveSchedules(schedules);
-    if (kpis) store.setKpis(kpis);
-    if (heatmap) store.setHeatmapData(heatmap);
+    if (kpis) {
+      store.setKpis({
+        totalWasteTodayKg: Number(kpis.totalWasteTodayKg),
+        activeDrivers: Number(kpis.activeDrivers),
+        pendingComplaints: Number(kpis.pendingComplaints),
+        collectionRate: Number(kpis.collectionRate),
+      });
+    }
+    if (heatmap) {
+      store.setHeatmapData(heatmap.map((h) => ({
+        latitude: Number(h.latitude),
+        longitude: Number(h.longitude),
+        total_kg: Number(h.total_kg),
+      })));
+    }
 
     // Log any failures
     for (const r of results) {

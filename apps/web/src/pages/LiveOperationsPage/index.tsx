@@ -16,7 +16,7 @@ const LiveOperationsPage: React.FC = () => {
   return (
     <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden">
       {/* Full-screen map */}
-      <LiveMap className="absolute inset-0" />
+      <LiveMap className="absolute inset-0 z-0" />
 
       {/* Floating panels */}
       <KPIBar />
