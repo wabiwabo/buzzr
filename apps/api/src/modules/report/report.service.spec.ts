@@ -112,4 +112,21 @@ describe('ReportService', () => {
       );
     });
   });
+
+  describe('getPaymentTimeseries', () => {
+    it('should return daily payment aggregation', async () => {
+      const mockData = [
+        { date: '2026-05-20', total_invoices: 10, paid_invoices: 8, revenue: '500000.00', collection_rate: '80.0' },
+        { date: '2026-05-21', total_invoices: 12, paid_invoices: 10, revenue: '750000.00', collection_rate: '83.3' },
+      ];
+      dataSource.query.mockResolvedValueOnce(mockData);
+
+      const result = await service.getPaymentTimeseries('dlh_demo', '2026-05-01', '2026-05-31');
+      expect(result).toEqual(mockData);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('collection_rate'),
+        ['2026-05-01', '2026-05-31'],
+      );
+    });
+  });
 });

@@ -148,6 +148,26 @@ export class ReportService {
     );
   }
 
+  async getPaymentTimeseries(tenantSchema: string, from: string, to: string): Promise<any[]> {
+    const schemaName = tenantSchema.replace(/[^a-z0-9_]/gi, '');
+    return this.dataSource.query(
+      `SELECT
+        DATE(created_at) as date,
+        COUNT(*)::int as total_invoices,
+        COUNT(*) FILTER (WHERE status = 'paid')::int as paid_invoices,
+        COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0)::numeric as revenue,
+        CASE WHEN COUNT(*) = 0 THEN 0
+          ELSE ROUND(COUNT(*) FILTER (WHERE status = 'paid') * 100.0 / COUNT(*), 1)
+        END as collection_rate
+      FROM "${schemaName}".transactions
+      WHERE type = 'retribution'
+        AND created_at BETWEEN $1 AND ($2::date + interval '1 day')
+      GROUP BY DATE(created_at)
+      ORDER BY date`,
+      [from, to],
+    );
+  }
+
   async getDashboardWithComparison(tenantSchema: string): Promise<{
     current: any;
     previous: any;
