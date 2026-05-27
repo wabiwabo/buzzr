@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import dayjs from 'dayjs';
+import { toast } from 'sonner';
 import { useReactTable, getCoreRowModel, getSortedRowModel, flexRender, createColumnHelper, type SortingState } from '@tanstack/react-table';
 import api from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader, PageTransition } from '../components/common';
@@ -41,6 +42,8 @@ const categoryLabels: Record<string, string> = {
   organic: 'Organik', inorganic: 'Anorganik', b3: 'B3', recyclable: 'Daur Ulang',
 };
 const COLORS = [CHART_COLORS[1], CHART_COLORS[0], CHART_COLORS[3], CHART_COLORS[2]];
+
+const driverColumnHelper = createColumnHelper<DriverPerf>();
 
 const ReportPage: React.FC = () => {
   const [driverData, setDriverData] = useState<DriverPerf[]>([]);
@@ -75,18 +78,20 @@ const ReportPage: React.FC = () => {
         const res = await api.get('/reports/complaints', { params: { from, to } });
         setComplaintStats(res.data);
       }
-    } catch { /* silent */ }
-    setLoading(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Gagal memuat laporan');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleFetch = () => fetchReport(activeTab, dateRange[0], dateRange[1]);
+  useEffect(() => {
+    fetchReport(activeTab, dateRange[0], dateRange[1]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, dateRange[0], dateRange[1]]);
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    fetchReport(tab, dateRange[0], dateRange[1]);
-  };
+  const handleTabChange = (tab: string) => setActiveTab(tab);
 
-  const driverColumnHelper = createColumnHelper<DriverPerf>();
   const driverColumns = useMemo(() => [
     driverColumnHelper.accessor('name', {
       header: ({ column }) => <DataTableColumnHeader column={column} title="Nama" />,
@@ -130,20 +135,22 @@ const ReportPage: React.FC = () => {
         breadcrumbs={[{ label: 'Dashboard', path: '/' }, { label: 'Laporan' }]}
         extra={
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="date"
-              className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 w-40 text-sm"
               value={dateRange[0]}
+              max={dateRange[1]}
               onChange={(e) => setDateRange([e.target.value, dateRange[1]])}
             />
             <span className="text-sm text-muted-foreground">—</span>
-            <input
+            <Input
               type="date"
-              className="flex h-8 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 w-40 text-sm"
               value={dateRange[1]}
+              min={dateRange[0]}
+              max={dayjs().format('YYYY-MM-DD')}
               onChange={(e) => setDateRange([dateRange[0], e.target.value])}
             />
-            <Button size="sm" onClick={handleFetch}>Tampilkan</Button>
           </div>
         }
       />
@@ -180,7 +187,7 @@ const ReportPage: React.FC = () => {
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-[400px]">
-                <p className="text-sm text-muted-foreground">Klik "Tampilkan" untuk memuat data</p>
+                <p className="text-sm text-muted-foreground">Tidak ada data untuk rentang tanggal ini</p>
               </div>
             )}
           </CardContent>
@@ -207,7 +214,7 @@ const ReportPage: React.FC = () => {
                   {driverTable.getRowModel().rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={driverColumns.length} className="h-48">
-                        <EmptyState type="no-data" title="Tidak ada data" description="Klik 'Tampilkan' untuk memuat data performa driver" />
+                        <EmptyState type="no-data" title="Tidak ada data" description="Belum ada data performa driver untuk rentang tanggal ini" />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -281,9 +288,12 @@ const ReportPage: React.FC = () => {
         </>
       )}
 
+      {activeTab === 'complaint' && !complaintStats && loading && (
+        <Skeleton className="h-[300px] w-full" />
+      )}
       {activeTab === 'complaint' && !complaintStats && !loading && (
         <div className="flex items-center justify-center h-[300px]">
-          <p className="text-sm text-muted-foreground">Klik "Tampilkan" untuk memuat statistik laporan</p>
+          <p className="text-sm text-muted-foreground">Tidak ada data laporan untuk rentang tanggal ini</p>
         </div>
       )}
     </div>
