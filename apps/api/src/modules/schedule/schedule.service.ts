@@ -133,17 +133,45 @@ export class ScheduleService {
 
   async getScheduleById(tenantSchema: string, id: string) {
     const result = await this.dataSource.query(
-      `SELECT s.*, json_agg(
-         json_build_object('id', ss.id, 'tps_id', ss.tps_id, 'stop_order', ss.stop_order, 'estimated_arrival', ss.estimated_arrival)
-         ORDER BY ss.stop_order
-       ) FILTER (WHERE ss.id IS NOT NULL) as stops
+      `SELECT s.*, u.name as driver_name, v.plate_number as vehicle_plate
        FROM "${tenantSchema}".schedules s
-       LEFT JOIN "${tenantSchema}".schedule_stops ss ON s.id = ss.schedule_id
-       WHERE s.id = $1
-       GROUP BY s.id`,
+       LEFT JOIN "${tenantSchema}".users u ON s.driver_id = u.id
+       LEFT JOIN "${tenantSchema}".vehicles v ON s.vehicle_id = v.id
+       WHERE s.id = $1`,
       [id],
     );
     if (!result.length) throw new NotFoundException('Jadwal tidak ditemukan');
-    return result[0];
+
+    const stops = await this.dataSource.query(
+      `SELECT st.id, st.tps_id, st.stop_order, st.estimated_arrival,
+              t.name as tps_name, t.address as tps_address,
+              ST_Y(t.coordinates::geometry) as tps_latitude,
+              ST_X(t.coordinates::geometry) as tps_longitude
+       FROM "${tenantSchema}".schedule_stops st
+       LEFT JOIN "${tenantSchema}".tps_locations t ON st.tps_id = t.id
+       WHERE st.schedule_id = $1
+       ORDER BY st.stop_order`,
+      [id],
+    );
+
+    return { ...result[0], stops };
+  }
+
+  async getTodayAdminSchedules(tenantSchema: string) {
+    return this.dataSource.query(
+      `SELECT s.id, s.route_name, s.schedule_type, s.recurring_days, s.scheduled_date,
+              s.start_time, s.status, s.driver_id, s.vehicle_id,
+              u.name as driver_name, v.plate_number as vehicle_plate,
+              (SELECT COUNT(*) FROM "${tenantSchema}".schedule_stops WHERE schedule_id = s.id)::int as stop_count
+       FROM "${tenantSchema}".schedules s
+       LEFT JOIN "${tenantSchema}".users u ON s.driver_id = u.id
+       LEFT JOIN "${tenantSchema}".vehicles v ON s.vehicle_id = v.id
+       WHERE (
+         s.scheduled_date = CURRENT_DATE
+         OR (s.schedule_type = 'recurring' AND EXTRACT(DOW FROM CURRENT_DATE)::int = ANY(s.recurring_days))
+       )
+       ORDER BY s.start_time`,
+      [],
+    );
   }
 }

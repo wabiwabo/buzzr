@@ -148,4 +148,50 @@ describe('ScheduleService', () => {
       ).rejects.toThrow('Jadwal tidak ditemukan');
     });
   });
+
+  describe('getScheduleById (with stops)', () => {
+    it('should return schedule detail with stops array', async () => {
+      dataSource.query
+        .mockResolvedValueOnce([{
+          id: 's-1', route_name: 'Rute Utara', status: 'pending',
+          driver_id: 'u-1', driver_name: 'Budi', vehicle_id: 'v-1', vehicle_plate: 'B 1234 XYZ',
+          schedule_type: 'recurring', recurring_days: [1, 3, 5],
+        }])
+        .mockResolvedValueOnce([
+          { id: 'st-1', tps_id: 't-1', stop_order: 1, estimated_arrival: '08:00:00', tps_name: 'TPS Cempaka', tps_address: 'Jl. Cempaka' },
+          { id: 'st-2', tps_id: 't-2', stop_order: 2, estimated_arrival: '08:30:00', tps_name: 'TPS Mawar', tps_address: 'Jl. Mawar' },
+        ]);
+
+      const result = await service.getScheduleById('dlh_demo', 's-1');
+      expect(result.stops).toBeDefined();
+      expect(result.stops).toHaveLength(2);
+      expect(result.stops[0].tps_name).toBe('TPS Cempaka');
+      expect(result.driver_name).toBe('Budi');
+    });
+
+    it('should throw NotFoundException when schedule not found', async () => {
+      dataSource.query.mockResolvedValueOnce([]);
+
+      await expect(
+        service.getScheduleById('dlh_demo', 's-999'),
+      ).rejects.toThrow('Jadwal tidak ditemukan');
+    });
+  });
+
+  describe('getTodayAdminSchedules', () => {
+    it('should return today\'s schedules across all drivers', async () => {
+      const mockData = [
+        { id: 's-1', route_name: 'Rute Utara', status: 'in_progress', start_time: '08:00', driver_name: 'Budi' },
+        { id: 's-2', route_name: 'Rute Selatan', status: 'pending', start_time: '09:00', driver_name: 'Ahmad' },
+      ];
+      dataSource.query.mockResolvedValueOnce(mockData);
+
+      const result = await service.getTodayAdminSchedules('dlh_demo');
+      expect(result).toEqual(mockData);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('CURRENT_DATE'),
+        expect.any(Array),
+      );
+    });
+  });
 });

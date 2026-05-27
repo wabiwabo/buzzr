@@ -52,6 +52,12 @@ export class ScheduleController {
     return this.scheduleService.getTodaySchedules(req.tenantSchema!, req.user.userId);
   }
 
+  @Get('today/all')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  getTodayAdmin(@Req() req: Request) {
+    return this.scheduleService.getTodayAdminSchedules(req.tenantSchema!);
+  }
+
   @Get(':id')
   getById(@Param('id') id: string, @Req() req: Request) {
     return this.scheduleService.getScheduleById(req.tenantSchema!, id);
