@@ -94,4 +94,16 @@ export class ComplaintService {
     if (!result.length) throw new NotFoundException('Laporan tidak ditemukan');
     return result[0];
   }
+
+  async getMapSummary(tenantSchema: string, limit: number = 1000): Promise<any[]> {
+    const schemaName = tenantSchema.replace(/[^a-z0-9_]/gi, '');
+    return this.dataSource.query(
+      `SELECT id, latitude, longitude, status, category, created_at
+       FROM "${schemaName}".complaints
+       WHERE created_at > NOW() - INTERVAL '90 days'
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+  }
 }

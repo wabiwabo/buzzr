@@ -45,6 +45,12 @@ export class ComplaintController {
     return this.complaintService.listComplaints(req.tenantSchema!, { reporterId: req.user.userId });
   }
 
+  @Get('map-summary')
+  @Roles(UserRole.DLH_ADMIN, UserRole.SUPER_ADMIN)
+  getMapSummary(@Req() req: Request) {
+    return this.complaintService.getMapSummary(req.tenantSchema!);
+  }
+
   @Get(':id')
   getById(@Param('id') id: string, @Req() req: Request) {
     return this.complaintService.getComplaintById(req.tenantSchema!, id);

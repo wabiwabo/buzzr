@@ -70,4 +70,21 @@ describe('ComplaintService', () => {
       expect(result.rating).toBe(5);
     });
   });
+
+  describe('getMapSummary', () => {
+    it('should return lightweight complaint markers for map', async () => {
+      const mockData = [
+        { id: 'c-1', latitude: -6.19, longitude: 106.82, status: 'submitted', category: 'illegal_dumping', created_at: '2026-05-01T10:00:00Z' },
+        { id: 'c-2', latitude: -6.20, longitude: 106.83, status: 'resolved', category: 'tps_full', created_at: '2026-05-02T10:00:00Z' },
+      ];
+      dataSource.query.mockResolvedValueOnce(mockData);
+
+      const result = await service.getMapSummary('dlh_demo');
+      expect(result).toEqual(mockData);
+      expect(dataSource.query).toHaveBeenCalledWith(
+        expect.stringContaining('latitude'),
+        expect.any(Array),
+      );
+    });
+  });
 });
