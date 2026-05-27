@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Body, Query, Headers, UseGuards, Req, HttpCode } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Headers, UseGuards, Req, HttpCode, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PaymentService } from './payment.service';
+import { XenditService } from './xendit.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,7 +12,11 @@ import { Request } from 'express';
 
 @Controller('payments')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly xenditService: XenditService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,7 +28,10 @@ export class PaymentController {
   @Post('webhook')
   @HttpCode(200)
   handleWebhook(@Body() data: any, @Headers('x-callback-token') token: string) {
-    // TODO: Verify webhook signature with xenditService
+    const expected = this.configService.get<string>('XENDIT_WEBHOOK_TOKEN');
+    if (!expected || !token || !this.xenditService.verifyWebhookSignature(token, expected)) {
+      throw new UnauthorizedException('Invalid webhook signature');
+    }
     return this.paymentService.handleWebhook(data);
   }
 

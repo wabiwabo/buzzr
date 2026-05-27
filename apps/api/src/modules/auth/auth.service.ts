@@ -37,7 +37,9 @@ export class AuthService {
   async requestOtp(phone: string): Promise<{ message: string }> {
     const code = await this.otpService.generateOtp(phone);
     // TODO: Send via Fonnte/Zenziva SMS gateway
-    console.log(`OTP for ${phone}: ${code}`); // Dev only
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`OTP for ${phone}: ${code}`);
+    }
     return { message: 'Kode OTP telah dikirim' };
   }
 
